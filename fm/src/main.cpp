@@ -1,7 +1,10 @@
 #include <iostream>
+#include "receiver.h"
 
 
 int main() {
-	std::cout << "Hello, world!\n";
+    Receiver receiver = Receiver();
+	receiver.run();
+
 	return 0;
 }

@@ -16,7 +16,7 @@ $(TARGET): $(OBJ)
 
 $(OBJ): CFLAGS += -I$(INCL_DIR)
 $(OBJ): CFLAGS += -c
-$(OBJ): $(SRC) | $(BUILD_DIR)
+$(OBJ): $(BUILD_DIR)/%.o: src/%.cpp | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(BUILD_DIR):
