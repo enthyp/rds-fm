@@ -1,0 +1,27 @@
+TARGET := main
+BUILD_DIR := ./build
+INCL_DIR := ./include
+
+SRC := $(wildcard src/*.cpp)
+OBJ := $(SRC:src/%.cpp=$(BUILD_DIR)/%.o)
+
+CFLAGS := -Wall -g
+
+
+.PHONY: all
+all: $(TARGET)
+
+$(TARGET): $(OBJ)
+	$(CXX) $(CFLAGS) -lpthread $^ -o $@
+
+$(OBJ): CFLAGS += -I$(INCL_DIR)
+$(OBJ): CFLAGS += -c
+$(OBJ): $(SRC) | $(BUILD_DIR)
+	$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR):
+	@mkdir -p $@
+
+.PHONY: clean
+clean:
+	@rm -rf $(BUILD_DIR) $(TARGET)
