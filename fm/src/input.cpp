@@ -11,9 +11,35 @@
 #include "task.h"
 
 
-input_wrapper::input_wrapper(int device_index) :
-    dev_index {device_index} {
+extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
+    input_wrapper * inp = (input_wrapper*) ctx;
+    std::shared_ptr<block> sink = inp -> sink;
+    std::memcpy(inp -> buf, buf, len);
 
+    for (int i = 0; i < (int)len; i++) {
+        inp -> buf[i] = (int16_t)(inp -> buf)[i] - 127;}
+    sink -> receive(inp -> buf, len);
+}
+
+
+class input_producer : public task {
+private:
+    rtlsdr_dev_t * dev;
+    void * ctx;
+    uint32_t & buf_num;
+    uint32_t & buf_len;
+
+public:
+    input_producer(rtlsdr_dev_t *dev, void *ctx, uint32_t buf_num, uint32_t buf_len) :
+        dev {dev}, ctx {ctx}, buf_num {buf_num}, buf_len {buf_len} {};
+
+    void run() {
+        rtlsdr_read_async(this -> dev, &rtlsdr_callback, this -> ctx, 0, this -> buf_len);
+    }
+};
+
+input_wrapper::input_wrapper(uint32_t device_index) :
+        dev_index {device_index} {
     // Initialize the device.
     if (rtlsdr_open(&(this -> dev), this -> dev_index) < 0) {
         throw input_init_exception(this -> dev_index);
@@ -22,11 +48,7 @@ input_wrapper::input_wrapper(int device_index) :
     rtlsdr_reset_buffer(this -> dev);
 
     // Create the task to produce signal samples.
-    this -> emit_samples = class : task {
-        void run() {
-            rtlsdr_read_async(this -> dev, this -> rtlsdr_callback, this, 0, this -> buf_len);
-        }
-    };
+    this -> emit_samples = std::unique_ptr<task>(new input_producer(this -> dev, this, 0, this -> buf_len));
 }
 
 void input_wrapper::to(std::shared_ptr<block> b) {
@@ -34,7 +56,7 @@ void input_wrapper::to(std::shared_ptr<block> b) {
 }
 
 void input_wrapper::run() {
-    this -> worker_t = std::thread(emit_samples);
+    this -> worker_t = std::thread(std::ref(*(this -> emit_samples)));
 }
 
 void input_wrapper::stop() {
@@ -46,13 +68,4 @@ void input_wrapper::stop() {
     if (rtlsdr_cancel_async(this -> dev) < 0 || rtlsdr_close(this -> dev) < 0) {
         throw input_shutdown_exception(this -> dev_index);
     }
-}
-
-void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
-    input_wrapper * input_wrapper = (input_wrapper*) ctx;
-    std::shared_ptr<block> sink = input_wrapper -> sink;
-    std::memcpy(input_wrapper -> buf, buf, len);
-
-    // TODO: additional processing before passing over to the next stage.
-    sink -> receive(buf, len);
 }

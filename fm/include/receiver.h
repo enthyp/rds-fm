@@ -14,7 +14,9 @@ private:
 
 public:
     receiver(std::shared_ptr<input_wrapper> i, std::shared_ptr<demodulator> d, std::shared_ptr<output_wrapper> o) :
-        input {i}, demod {d}, output {o} {};
+            input {i}, demod {d}, output {o} {
+        this -> input -> to(output);
+    };
 
     void run();
 

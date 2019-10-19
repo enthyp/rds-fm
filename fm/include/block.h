@@ -13,6 +13,7 @@ class block {
 public:
     virtual std::string get_type() const = 0;
 
+    // TODO: unnecessary? only if we don't want one block messing in other's internals.
     virtual void from(std::shared_ptr<block> b) {
         throw block_conn_exception(b -> get_type(), this -> get_type());
     };
@@ -25,7 +26,7 @@ public:
 
     virtual void stop() = 0;
 
-    virtual void receive(uint16_t * buffer, uint32_t len) {
+    virtual void receive(int16_t * buffer, uint32_t len) {
         throw bad_call_exception(this -> get_type(), "receive");
     }
 };

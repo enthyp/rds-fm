@@ -33,9 +33,9 @@ public:
     }
 
     void stop() {
-        exitSignal.set_value();
+        exit_contract.set_value();
     }
 
 };
 
-#endif  /* TASK_H *
+#endif  /* TASK_H */

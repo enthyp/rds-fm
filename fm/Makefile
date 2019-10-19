@@ -12,7 +12,7 @@ CFLAGS := -Wall -g
 all: $(TARGET)
 
 $(TARGET): $(OBJ)
-	$(CXX) $(CFLAGS) -lpthread $^ -o $@
+	$(CXX) $(CFLAGS) -lpthread -lrtlsdr $^ -o $@
 
 $(OBJ): CFLAGS += -I$(INCL_DIR)
 $(OBJ): CFLAGS += -c

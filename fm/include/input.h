@@ -10,6 +10,7 @@
 #include "block.h"
 #include "task.h"
 
+extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
 class input_wrapper : public block {
 private:
@@ -18,14 +19,15 @@ private:
     rtlsdr_dev_t * dev;
     uint32_t dev_index;
 
-    task emit_samples;
+    std::unique_ptr<task> emit_samples;
     std::thread worker_t;
-    void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
     uint32_t buf_len;
-    uint16_t buf[MAXIMUM_BUF_LENGTH];
+    int16_t buf[MAXIMUM_BUFFER_LENGTH];
+    friend void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
 public:
+    input_wrapper(uint32_t dev_index);
     std::string get_type() const { return "input_wrapper"; }
     void to(std::shared_ptr<block> b);
 

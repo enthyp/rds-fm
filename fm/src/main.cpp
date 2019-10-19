@@ -8,9 +8,9 @@
 
 
 int main() {
-    std::shared_ptr<input_wrapper> input = std::make_shared<input_wrapper>(input_wrapper());
-    std::shared_ptr<demodulator> demod = std::make_shared<demodulator>(demodulator());
-    std::shared_ptr<output_wrapper> output = std::make_shared<output_wrapper>(output_wrapper());
+    std::shared_ptr<input_wrapper> input = std::shared_ptr<input_wrapper>(new input_wrapper(0));
+    std::shared_ptr<demodulator> demod = std::shared_ptr<demodulator>(new demodulator());
+    std::shared_ptr<output_wrapper> output = std::shared_ptr<output_wrapper>(new output_wrapper("bob.txt"));
 
     receiver recv = receiver(input, demod, output);
 	recv.run();
