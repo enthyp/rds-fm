@@ -19,17 +19,17 @@ private:
     std::condition_variable & buffer_ready;
 
 public:
-    output_producer(
-            std::string filename,
-            std::ostream & target,
-            uint32_t & buf_size,
-            int16_t * buffer,
-            std::mutex & buffer_lock,
-            std::condition_variable & buffer_ready) :
-            buf_size {buf_size},
-            buffer {buffer},
-            buffer_lock {buffer_lock},
-            buffer_ready {buffer_ready} {
+    output_producer(std::string filename,
+                    std::ostream & target,
+                    uint32_t & buf_size,
+                    int16_t * buffer,
+                    std::mutex & buffer_lock,
+                    std::condition_variable & buffer_ready)
+        : buf_size {buf_size},
+          buffer {buffer},
+          buffer_lock {buffer_lock},
+          buffer_ready {buffer_ready}
+    {
         if (filename == "-") {
             this -> target = &std::cout;
         } else {

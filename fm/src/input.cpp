@@ -31,12 +31,14 @@ private:
     uint32_t & buf_num;
 
 public:
-    input_producer(
-            rtlsdr_dev_t *dev,
-            uint32_t dev_index,
-            void *ctx,
-            uint32_t buf_num):
-        dev {dev}, dev_index {dev_index}, ctx {ctx}, buf_num {buf_num} {};
+    input_producer(rtlsdr_dev_t *dev,
+                   uint32_t dev_index,
+                   void *ctx,
+                   uint32_t buf_num)
+        : dev {dev},
+          dev_index {dev_index},
+          ctx {ctx},
+          buf_num {buf_num} {};
 
     void run() {
         rtlsdr_read_async(this -> dev, &rtlsdr_callback, this -> ctx, 0, DEFAULT_BUFFER_LENGTH);
@@ -50,8 +52,8 @@ public:
     }
 };
 
-input_wrapper::input_wrapper(uint32_t device_index) :
-        dev_index {device_index} {
+input_wrapper::input_wrapper(uint32_t device_index)
+    : dev_index {device_index} {
     // Initialize the device.
     if (rtlsdr_open(&(this -> dev), this -> dev_index) < 0) {
         throw input_init_exception(this -> dev_index);
