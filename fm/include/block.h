@@ -6,17 +6,12 @@
 #include "errors.h"
 
 #define DEFAULT_BUFFER_LENGTH 16384
-#define MAXIMUM_BUFFER_LENGTH DEFAULT_BUFFER_LENGTH
+#define MAXIMUM_BUFFER_LENGTH (16 * DEFAULT_BUFFER_LENGTH)
 
 
 class block {
 public:
     virtual std::string get_type() const = 0;
-
-    // TODO: unnecessary? only if we don't want one block messing in other's internals.
-    virtual void from(std::shared_ptr<block> b) {
-        throw block_conn_exception(b -> get_type(), this -> get_type());
-    };
 
     virtual void to(std::shared_ptr<block> b) {
         throw block_conn_exception(this -> get_type(), b -> get_type());

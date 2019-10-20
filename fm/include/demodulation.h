@@ -13,7 +13,6 @@ private:
 
 public:
     std::string get_type() const { return "demodulator"; }
-    void from(std::shared_ptr<block> b);
     void to(std::shared_ptr<block> b);
     void run();
     void stop();

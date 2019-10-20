@@ -1,12 +1,6 @@
 #include "block.h"
 #include "demodulation.h"
 
-
-void demodulator::from(std::shared_ptr<block> b) {
-    this -> source = b;
-}
-
-// TODO: watch for cycles!
 void demodulator::to(std::shared_ptr<block> b) {
     this -> sink = b;
 }

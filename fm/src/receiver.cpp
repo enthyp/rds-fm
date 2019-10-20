@@ -7,7 +7,7 @@ void receiver::run() {
     // this -> demod -> run();
     this -> input -> run();
 
-    std::cout << "Running..." << std::endl;
+    std::cerr << "Running..." << std::endl;
 }
 
 void receiver::stop() {
@@ -15,5 +15,5 @@ void receiver::stop() {
     // this -> demod -> stop();
     this -> output -> stop();
 
-    std::cout << "Stopped." << std::endl;
+    std::cerr << "Stopped." << std::endl;
 }

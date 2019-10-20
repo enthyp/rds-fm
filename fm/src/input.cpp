@@ -1,3 +1,4 @@
+#include <iostream>
 #include <memory>
 #include <thread>
 #include <cstddef>
@@ -14,10 +15,10 @@
 extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
     input_wrapper * inp = (input_wrapper*) ctx;
     std::shared_ptr<block> sink = inp -> sink;
-    std::memcpy(inp -> buf, buf, len);
 
     for (int i = 0; i < (int)len; i++) {
-        inp -> buf[i] = (int16_t)(inp -> buf)[i] - 127;}
+        inp -> buf[i] = (int16_t)buf[i] - 127;
+    }
     sink -> receive(inp -> buf, len);
 }
 
@@ -25,16 +26,27 @@ extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
 class input_producer : public task {
 private:
     rtlsdr_dev_t * dev;
+    uint32_t dev_index;
     void * ctx;
     uint32_t & buf_num;
-    uint32_t & buf_len;
 
 public:
-    input_producer(rtlsdr_dev_t *dev, void *ctx, uint32_t buf_num, uint32_t buf_len) :
-        dev {dev}, ctx {ctx}, buf_num {buf_num}, buf_len {buf_len} {};
+    input_producer(
+            rtlsdr_dev_t *dev,
+            uint32_t dev_index,
+            void *ctx,
+            uint32_t buf_num):
+        dev {dev}, dev_index {dev_index}, ctx {ctx}, buf_num {buf_num} {};
 
     void run() {
-        rtlsdr_read_async(this -> dev, &rtlsdr_callback, this -> ctx, 0, this -> buf_len);
+        rtlsdr_read_async(this -> dev, &rtlsdr_callback, this -> ctx, 0, DEFAULT_BUFFER_LENGTH);
+    }
+
+    void stop() {
+        task::stop();
+        if (rtlsdr_cancel_async(this -> dev) != 0) {
+            throw input_shutdown_exception(this -> dev_index);
+        }
     }
 };
 
@@ -48,7 +60,7 @@ input_wrapper::input_wrapper(uint32_t device_index) :
     rtlsdr_reset_buffer(this -> dev);
 
     // Create the task to produce signal samples.
-    this -> emit_samples = std::unique_ptr<task>(new input_producer(this -> dev, this, 0, this -> buf_len));
+    this -> emit_samples = std::unique_ptr<task>(new input_producer(this -> dev, this -> dev_index, this, 0));
 }
 
 void input_wrapper::to(std::shared_ptr<block> b) {
@@ -65,7 +77,7 @@ void input_wrapper::stop() {
     this -> worker_t.join();
 
     // Shutdown communication with the device.
-    if (rtlsdr_cancel_async(this -> dev) < 0 || rtlsdr_close(this -> dev) < 0) {
+    if (rtlsdr_close(this -> dev) < 0) {
         throw input_shutdown_exception(this -> dev_index);
     }
 }

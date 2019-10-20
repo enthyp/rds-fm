@@ -32,7 +32,7 @@ public:
         return true;
     }
 
-    void stop() {
+    virtual void stop() {
         exit_contract.set_value();
     }
 

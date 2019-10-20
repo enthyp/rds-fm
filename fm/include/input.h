@@ -22,7 +22,6 @@ private:
     std::unique_ptr<task> emit_samples;
     std::thread worker_t;
 
-    uint32_t buf_len;
     int16_t buf[MAXIMUM_BUFFER_LENGTH];
     friend void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
