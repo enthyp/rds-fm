@@ -19,6 +19,7 @@ private:
   std::condition_variable buffer_ready;
 
 public:
+    demodulator();
     std::string get_type() const { return "demodulator"; }
     void to(std::shared_ptr<block> b);
     void run();

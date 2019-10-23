@@ -1,3 +1,4 @@
+#include <cstring>
 #include "block.h"
 #include "demodulation.h"
 
@@ -35,7 +36,13 @@ class demodulation : public task {
         break;
 
       // TODO: process the data...
+      // From the simplest approach - baseband delay (but why apply low pass filter
+      // before approximating the phase? is that for downsampling (decimation) only?
+      // sdr-j code suggests so...)
 
+
+      // And send the data to output block.
+      this -> sink -> receive(this -> buffer, this -> buf_size);
     }
   }
 
@@ -59,11 +66,11 @@ void demodulator::run() {
 }
 
 void demodulator::stop() {
-    this -> demodulate.stop();
+    this -> demodulate -> stop();
     this -> worker_t.join();
 }
 
-void receive(uint16_t * buffer, uint32_t len) {
+void demodulator::receive(uint16_t * buffer, uint32_t len) {
     std::lock_guard<std::mutex> lock(this -> buffer_lock);
     std::memcpy(this -> buf, buffer, sizeof(int16_t) * len);
     this -> buf_size = len;

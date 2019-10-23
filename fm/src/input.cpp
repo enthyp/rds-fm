@@ -61,6 +61,12 @@ input_wrapper::input_wrapper(uint32_t device_index)
 
     rtlsdr_reset_buffer(this -> dev);
 
+    // Set frequency to Chili Zet (93.7 MHz).
+    rtlsdr_set_center_freq(this -> dev, 93700000);
+
+    // Set signal sampling rate to 2.4 MHz.
+    rtlsdr_set_sample_rate(this -> dev, 2400000);
+
     // Create the task to produce signal samples.
     this -> emit_samples = std::unique_ptr<task>(new input_producer(this -> dev, this -> dev_index, this, 0));
 }
