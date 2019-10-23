@@ -25,10 +25,10 @@ public:
                     int16_t * buffer,
                     std::mutex & buffer_lock,
                     std::condition_variable & buffer_ready)
-        : buf_size {buf_size},
-          buffer {buffer},
-          buffer_lock {buffer_lock},
-          buffer_ready {buffer_ready}
+      : buf_size {buf_size},
+        buffer {buffer},
+        buffer_lock {buffer_lock},
+        buffer_ready {buffer_ready}
     {
         if (filename == "-") {
             this -> target = &std::cout;
