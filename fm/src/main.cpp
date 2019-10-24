@@ -9,13 +9,13 @@
 
 int main() {
     std::shared_ptr<input_wrapper> input = std::shared_ptr<input_wrapper>(new input_wrapper(0));
-    std::shared_ptr<demodulator> demod = std::shared_ptr<demodulator>(new demodulator());
-    std::shared_ptr<output_wrapper> output = std::shared_ptr<output_wrapper>(new output_wrapper("bob"));
+    std::shared_ptr<demodulator> demod = std::shared_ptr<demodulator>(new demodulator(10));
+    std::shared_ptr<output_wrapper> output = std::shared_ptr<output_wrapper>(new output_wrapper("bob", 5));
 
     receiver recv = receiver(input, demod, output);
 	recv.run();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
     recv.stop();
 
 	return 0;

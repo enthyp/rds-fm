@@ -3,7 +3,7 @@ SRC_DIR := ./src
 BUILD_DIR := ./build
 INCL_DIR := ./include
 
-SRC := $(wildcard $(SRC_DIR)/*.cpp)
+SRC := $(wildcard $(SRC_DIR)/**/*.cpp) $(wildcard $(SRC_DIR)/*.cpp)
 OBJ := $(SRC:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 DEPS := $(OBJ:.o=.d)
 

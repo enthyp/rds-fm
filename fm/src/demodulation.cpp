@@ -12,7 +12,14 @@ class demodulation : public task {
   std::mutex & buffer_lock;
   std::condition_variable & buffer_ready;
 
-  int16_t lp_buf[MAXIMUM_BUFFER_LENGTH];  // TODO: wtf we actually need???
+  decimator dec;
+  int16_t lp_buf[MAXIMUM_BUFFER_LENGTH];
+
+  int dm_start = 0;
+  int32_t dm_acc = 0;
+  int16_t dm_buf[MAXIMUM_BUFFER_LENGTH];
+
+  downsampler ds;
 
  public:
   demodulation(std::shared_ptr<block> sink,
@@ -24,7 +31,11 @@ class demodulation : public task {
       buf_size {buf_size},
       buffer {buffer},
       buffer_lock {buffer_lock},
-      buffer_ready {buffer_ready} {};
+      buffer_ready {buffer_ready}
+      {
+        this -> dec = decimator(buffer, buf_size, sink.get(), 10, 10);
+        this -> ds = downsampler(buffer, buf_size, sink.get(), 5);
+      };
 
   void run() {
     while (!stop_requested()) {
@@ -36,9 +47,7 @@ class demodulation : public task {
         break;
 
       // TODO: process the data...
-      // From the simplest approach - baseband delay (but why apply low pass filter
-      // before approximating the phase? is that for downsampling (decimation) only?
-      // sdr-j code suggests so...)
+      this -> dec.run();
 
 
       // And send the data to output block.
@@ -49,6 +58,10 @@ class demodulation : public task {
   void stop() {
     task::stop();
     this -> buffer_ready.notify_one();
+  }
+
+  void fm_demodulate(int16_t * in_buf, uint32_t len, int16_t out_buffer) {
+
   }
 };
 

@@ -11,12 +11,15 @@
 
 
 class output_producer : public task {
-private:
-    std::ostream * target;
-    uint32_t & buf_size;
-    int16_t * buffer;
-    std::mutex & buffer_lock;
-    std::condition_variable & buffer_ready;
+ private:
+  std::ostream * target;
+  uint32_t & buf_size;
+  int16_t * buffer;
+  std::mutex & buffer_lock;
+  std::condition_variable & buffer_ready;
+
+  int16_t ds_buf[MAXIMUM_BUFFER_LENGTH];
+  downsampler ds;
 
 public:
     output_producer(std::string filename,
@@ -24,7 +27,8 @@ public:
                     uint32_t & buf_size,
                     int16_t * buffer,
                     std::mutex & buffer_lock,
-                    std::condition_variable & buffer_ready)
+                    std::condition_variable & buffer_ready,
+                    int m_factor)
       : buf_size {buf_size},
         buffer {buffer},
         buffer_lock {buffer_lock},
@@ -35,6 +39,8 @@ public:
         } else {
             this -> target = &target;
         }
+
+        this -> ds = downsampler(buffer, buf_size, this -> ds_buf, m_factor);
     };
 
     void run() {
@@ -46,7 +52,9 @@ public:
             if (this -> stop_requested())
                 break;
 
-            (*(this -> target)).write(reinterpret_cast<const char *>(this -> buffer), this -> buf_size * sizeof(int16_t));
+            int size = this -> ds.run();
+
+            (*(this -> target)).write(reinterpret_cast<const char *>(this -> dec_buf), size * sizeof(int16_t));
         }
     }
 
@@ -56,7 +64,7 @@ public:
     }
 };
 
-output_wrapper::output_wrapper(std::string filename) {
+output_wrapper::output_wrapper(std::string filename, int m_factor) {
     // Open the output stream.
     if (filename != "-") {
         this -> target.open(filename, std::ios::binary | std::ios::out);
@@ -64,7 +72,7 @@ output_wrapper::output_wrapper(std::string filename) {
 
     // Create the task to save data to file.
     this -> emit_samples = std::unique_ptr<task>(new output_producer(filename, this -> target, this -> buf_size, this -> buf,
-            this -> buffer_lock, this -> buffer_ready));
+            this -> buffer_lock, this -> buffer_ready, m_factor));
 }
 
 void output_wrapper::run() {
