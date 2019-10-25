@@ -1,9 +1,9 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "input.h"
+#include "in/rtl_source.h"
 #include "demodulation.h"
-#include "output.h"
+#include "out/file_sink.h"
 
 
 class receiver {

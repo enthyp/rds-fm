@@ -33,8 +33,8 @@ class demodulation : public task {
       buffer_lock {buffer_lock},
       buffer_ready {buffer_ready}
       {
-        this -> dec = decimator(buffer, buf_size, sink.get(), 10, 10);
-        this -> ds = downsampler(buffer, buf_size, sink.get(), 5);
+        this -> dec = decimator(buffer, sink.get(), 10, 10);
+        this -> ds = downsampler(buffer, sink.get(), 5);
       };
 
   void run() {
@@ -47,7 +47,7 @@ class demodulation : public task {
         break;
 
       // TODO: process the data...
-      this -> dec.run();
+      this -> dec.run(this -> buf_size);
 
 
       // And send the data to output block.

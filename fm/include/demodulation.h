@@ -3,21 +3,12 @@
 
 #include <string>
 #include <memory>
-#include "block.h"
-#include "task.h"
+#include "blocks/flow.h"
+#include "blocks/task.h"
 
 
-class demodulator : public block {
-private:
-  std::shared_ptr <block> sink;
-  std::unique_ptr<task> demodulate;
-  std::thread worker_t;
-
-  uint32_t buf_size;
-  int16_t buf[MAXIMUM_BUFFER_LENGTH];
-  std::mutex buffer_lock;
-  std::condition_variable buffer_ready;
-
+class demodulator : public flow {
+  // TODO: private demodulation params...
 public:
     demodulator();
     std::string get_type() const { return "demodulator"; }

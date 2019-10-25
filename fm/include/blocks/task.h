@@ -12,14 +12,6 @@ private:
 public:
     task() : exit_signal(exit_contract.get_future()) {};
 
-    task(task && t) : exit_contract(std::move(t.exit_contract)), exit_signal(std::move(t.exit_signal)) {};
-
-    task & operator=(task && t) {
-        exit_contract = std::move(t.exit_contract);
-        exit_signal = std::move(t.exit_signal);
-        return *this;
-    }
-
     virtual void run() = 0;
 
     void operator()() {

@@ -3,7 +3,6 @@
 
 class decimator {
  private:
-  int len;
   int16_t * source, * sink;
   int m_factor;
 
@@ -13,9 +12,8 @@ class decimator {
   int window_cnt;
 
  public:
-  downsampler(int16_t * source, int len, int16_t * sink, int m_factor, int window_len)
+  downsampler(int16_t * source, int16_t * sink, int m_factor, int window_len)
       : source {source}
-  len {len}
   sink {sink}
   m_factor {m_factor}
   init_pos {0}
