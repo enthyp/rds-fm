@@ -1,3 +1,4 @@
+#include <iostream>
 #include "blocks/decimation.h"
 
 
@@ -21,7 +22,7 @@ int complex_decimator::decimate() {
   int i = init_pos;
   int j = 0;
 
-  while (i < buf_size - 1) {
+  while (i < buf_size) {
     while (window_cnt < window_len && i < buf_size - 1) {
       acc_i += input_buffer[i];
       acc_q += input_buffer[i + 1];

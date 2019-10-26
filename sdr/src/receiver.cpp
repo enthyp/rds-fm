@@ -4,8 +4,8 @@
 
 void receiver::run() {
   output -> run();
-  downsampler -> run();
-  fm_demodulator -> run();
+//  downsampler -> run();
+//  fm_demodulator -> run();
   decimator -> run();
   input -> run();
 
@@ -15,8 +15,8 @@ void receiver::run() {
 void receiver::stop() {
   input -> stop();
   decimator -> stop();
-  fm_demodulator -> stop();
-  downsampler -> stop();
+//  fm_demodulator -> stop();
+//  downsampler -> stop();
   output -> stop();
 
   std::cerr << "Stopped." << std::endl;

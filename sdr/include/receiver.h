@@ -26,9 +26,9 @@ public:
              downsampler {downsampler},
              output {output} {
         input -> to(decimator);
-        decimator -> to(fm_demodulator);
-        fm_demodulator -> to(downsampler);
-        downsampler -> to(output);
+        decimator -> to(output);
+//        fm_demodulator -> to(downsampler);
+//        downsampler -> to(output);
     };
 
     void run();

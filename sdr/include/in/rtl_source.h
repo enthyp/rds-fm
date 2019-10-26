@@ -21,7 +21,7 @@ private:
   friend void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
 public:
-  explicit rtl_source(uint32_t dev_index);
+  rtl_source(uint32_t dev_index, int freq, int sampling_rate);
   std::string get_type() const override { return "rtl_source"; }
   void run() override
   {

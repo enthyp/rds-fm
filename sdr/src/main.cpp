@@ -9,13 +9,14 @@
 #include "receiver.h"
 
 
-int main() {
+int main(int argc, char* argv[]) {
   int dev_index = 0;
+  int freq = 101615000, sampling_rate = 2400000;
   int m1 = 10, m2 = 5;
-  std::string target = "air.raw";
+  std::string target = std::string(argv[1]);
 
   std::shared_ptr<source> input = std::shared_ptr<source>(
-      new rtl_source(dev_index));
+      new rtl_source(dev_index, freq, sampling_rate));
   std::shared_ptr<flow> decimator = std::shared_ptr<flow>(
       new complex_decimator(m1, m1));
   std::shared_ptr<flow> fm_demodulator = std::shared_ptr<flow>(

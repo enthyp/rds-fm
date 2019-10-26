@@ -10,7 +10,7 @@
 #include "errors.h"
 
 
-rtl_source::rtl_source(uint32_t device_index)
+rtl_source::rtl_source(uint32_t device_index, int freq, int sampling_rate)
     : dev_index {device_index},
       im_buffer {0} {
     // Initialize the device.
@@ -19,12 +19,8 @@ rtl_source::rtl_source(uint32_t device_index)
     }
 
     rtlsdr_reset_buffer(dev);
-
-    // Set frequency to Chili Zet (93.7 MHz).
-    rtlsdr_set_center_freq(dev, 101615000);
-
-    // Set signal sampling rate to 2.4 MHz.
-    rtlsdr_set_sample_rate(dev, 2400000);
+    rtlsdr_set_center_freq(dev, freq);
+    rtlsdr_set_sample_rate(dev, sampling_rate);
 }
 
 extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);

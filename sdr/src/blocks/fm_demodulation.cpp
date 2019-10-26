@@ -1,6 +1,8 @@
 #include <cmath>
 #include "blocks/fm_demodulation.h"
 
+#define PI 3.14159
+
 
 void fm_demodulator::process() {
   while (working) {
@@ -21,9 +23,17 @@ void fm_demodulator::process() {
 int fm_demodulator::demodulate() {
   int i;
 
-  for (i = 0; i < buf_size - 1; i += 2) {
+  for (i = 0; i < buf_size; i += 2) {
     double angle = atan2(input_buffer[i], input_buffer[i + 1]);
-    demodulated_buffer[i / 2] = (int)((angle - prev_angle) / 3.14159 * (1u<<15u));
+    double angle_diff = angle - prev_angle;
+
+    // Unwrap phase.
+    if (angle_diff > PI)
+      angle_diff = 2 * PI - angle_diff;
+    else if (angle_diff < -PI)
+      angle_diff = -2 * PI - angle_diff;
+
+    demodulated_buffer[i / 2] = (int16_t)(angle_diff / 3.14159 * (1u<<15u));
     prev_angle = angle;
   }
 
