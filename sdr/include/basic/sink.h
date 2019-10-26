@@ -1,32 +1,31 @@
-#ifndef BLOCKS_FLOW
-#define BLOCKS_FLOW
+#ifndef BLOCKS_SINK
+#define BLOCKS_SINK
 
+#include <atomic>
 #include "block.h"
-#include "sink.h"
 
 
-class flow : public producer, public consumer {
+class sink : public consumer {
  protected:
-  std::shared_ptr<consumer> consumer;
-
   int16_t[MAXIMUM_BUFFER_LENGTH] input_buffer;
   uint32_t buf_size;
   std::mutex & buf_lock;
   std::condition_variable & buf_ready;
 
-  std::unique_ptr<task> process;
+  virtual void consume() = 0;
   std::thread worker_t;
+  virtual void stop_worker() = 0;
 
  public:
   virtual void run()
   {
-    worker_t = std::thread(std::ref(*process));
+    worker_t = std::thread(consume);
   }
 
   virtual void stop()
   {
-    this -> process -> stop();
-    this -> worker_t.join();
+    stop_worker();
+    worker_t.join();
   }
 
   virtual void receive(int16_t * buffer, uint32_t len)
@@ -36,12 +35,6 @@ class flow : public producer, public consumer {
     buf_size = len;
     buf_ready.notify_one();
   }
-
-  virtual void to(std::shared_ptr<consumer> c)
-  {
-    consumer = c;
-  }
 };
 
-
-#endif  /* BLOCKS_FLOW */
+#endif  /* BLOCKS_SINK */

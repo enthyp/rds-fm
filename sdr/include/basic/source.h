@@ -1,26 +1,27 @@
 #ifndef BLOCKS_SOURCE
 #define BLOCKS_SOURCE
 
+#include <thread>
+
 #include "block.h"
-#include "sink.h"
 
 
 class source : public producer {
  protected:
   std::shared_ptr<consumer> consumer;
-  std::unique_ptr<task> produce;
+  virtual void produce() = 0;
   std::thread worker_t;
+  virtual void stop_worker() = 0;
 
  public:
-  virtual void run()
-  {
-    worker_t = std::thread(std::ref(*produce));
+  virtual void rtl_source::run() {
+    worker_t = std::thread(produce);
   }
 
   virtual void stop()
   {
-    this -> produce -> stop();
-    this -> worker_t.join();
+    stop_worker();
+    worker_t.join();
   }
 
   virtual void to(std::shared_ptr<consumer> b)
