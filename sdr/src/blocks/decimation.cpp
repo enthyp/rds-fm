@@ -13,18 +13,18 @@ void complex_decimator::process() {
     int len = decimate();
 
     // And send the data to output block.
-    consumer -> receive(decimated_buffer, len);
+    succ -> receive(decimated_buffer, len);
   }
 }
 
-int complex_decimator:decimate() {
+int complex_decimator::decimate() {
   int i = init_pos;
   int j = 0;
 
   while (i < buf_size - 1) {
     while (window_cnt < window_len && i < buf_size - 1) {
-      acc_i += source[i];
-      acc_q += source[i + 1];
+      acc_i += input_buffer[i];
+      acc_q += input_buffer[i + 1];
       window_cnt++;
       i += 2;
     }
@@ -40,7 +40,7 @@ int complex_decimator:decimate() {
     i += 2 * (m_factor - window_len);
   }
 
-  init_pos = i % len;
+  init_pos = i % buf_size;
   return j;
 };
 

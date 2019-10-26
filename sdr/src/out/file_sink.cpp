@@ -8,20 +8,17 @@
 #include "out/file_sink.h"
 
 
-file_sink::file_sink(std::string filename, int m_factor) : working {false} {
+file_sink::file_sink(std::string & filename)
+  : working {false}
+  {
     // Open the output stream.
-  if (filename != "-") {
-    out_file.open(filename, std::ios::binary | std::ios::out);
-    target = &out_file;
-  } else {
-    target = &(std::cout);
+    if (filename != "-") {
+      out_file.open(filename, std::ios::binary | std::ios::out);
+      target = &out_file;
+    } else {
+      target = &(std::cout);
+    }
   }
-}
-
-void file_sink::run() {
-  working = true;
-  sink::run();
-}
 
 void file_sink::consume() {
   while (working) {
@@ -32,7 +29,7 @@ void file_sink::consume() {
     if (!working)
       break;
 
-    (*target).write(reinterpret_cast<const char *>input_buffer, buf_size * sizeof(int16_t));
+    (*target).write(reinterpret_cast<const char *>(input_buffer), buf_size * sizeof(int16_t));
   }
 }
 

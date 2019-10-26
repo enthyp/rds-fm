@@ -13,7 +13,7 @@ void downsampler::process() {
     int len = downsample();
 
     // And send the data to output block.
-    consumer -> receive(downsampled_buffer, len);
+    succ -> receive(downsampled_buffer, len);
   }
 }
 

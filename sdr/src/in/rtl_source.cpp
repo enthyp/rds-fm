@@ -11,7 +11,8 @@
 
 
 rtl_source::rtl_source(uint32_t device_index)
-    : dev_index {device_index} {
+    : dev_index {device_index},
+      im_buffer {0} {
     // Initialize the device.
     if (rtlsdr_open(&(dev), dev_index) < 0) {
         throw input_init_exception(dev_index);
@@ -26,18 +27,10 @@ rtl_source::rtl_source(uint32_t device_index)
     rtlsdr_set_sample_rate(dev, 2400000);
 }
 
+extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
+
 void rtl_source::produce() {
-  rtlsdr_read_async(dev, &rtlsdr_callback, NULL, 0, DEFAULT_BUFFER_LENGTH);
-}
-
-// TODO: maybe consumer should pull data from producer?
-// Now producer does not wait for the consumer (might overwrite o.O)
-extern "C" void rtl_source::rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx) {
-  for (int i = 0; i < (int)len; i++) {
-    im_bufer[i] = (int16_t)buf[i] - 127;
-  }
-
-  sink -> receive(im_buffer, len);
+  rtlsdr_read_async(dev, &rtlsdr_callback, this, 0, DEFAULT_BUFFER_LENGTH);
 }
 
 void rtl_source::stop_worker() {
@@ -54,4 +47,17 @@ void rtl_source::stop() {
   if (rtlsdr_close(dev) < 0) {
       throw input_shutdown_exception(dev_index);
   }
+}
+
+
+// TODO: maybe consumer should pull data from producer?
+// Now producer does not wait for the consumer (might overwrite o.O)
+extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
+  auto source = (rtl_source*) ctx;
+
+  for (int i = 0; i < (int)len; i++) {
+    source -> im_buffer[i] = (int16_t)buf[i] - 127;
+  }
+
+  source -> succ -> receive(source -> im_buffer, len);
 }

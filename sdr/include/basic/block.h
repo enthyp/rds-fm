@@ -14,14 +14,15 @@ public:
     virtual void stop() = 0;
 };
 
+class consumer : public block {
+ public:
+  virtual void receive(int16_t * buffer, int len) = 0;
+};
+
 class producer : public block {
  public:
   virtual void to(std::shared_ptr<consumer> b) = 0;
 };
 
-class consumer : public block {
- public:
-  virtual void receive(int16_t * buffer, uint32_t len) = 0;
-};
 
 #endif  /* BLOCK_H */

@@ -1,7 +1,9 @@
 #ifndef RECEIVER_H
 #define RECEIVER_H
 
-#include "blocks/block.h"
+#include <basic/source.h>
+#include "basic/flow.h"
+#include "basic/sink.h"
 
 
 class receiver {
@@ -13,12 +15,12 @@ private:
   std::shared_ptr<sink> output;
 
 public:
-  receiver(std::shared_ptr<source> input,
-           std::shared_ptr<flow> decimator,
-           std::shared_ptr<flow> fm_demodulator,
-           std::shared_ptr<flow> downsampler,
-           std::shared_ptr<sink> output)
-           : input {i},
+  receiver(std::shared_ptr<source> & input,
+           std::shared_ptr<flow> & decimator,
+           std::shared_ptr<flow> & fm_demodulator,
+           std::shared_ptr<flow> & downsampler,
+           std::shared_ptr<sink> & output)
+           : input {input},
              decimator {decimator},
              fm_demodulator {fm_demodulator},
              downsampler {downsampler},

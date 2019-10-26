@@ -10,22 +10,26 @@
 
 
 int main() {
-    std::shared_ptr<source> input = std::shared_ptr<source>(
-        new rtl_source(0));
-    std::shared_ptr<flow> decimator = std::shared_ptr<flow>(
-        new decimator(10));
-    std::shared_ptr<flow> fm_demodulator = std::shared_ptr<flow>(
-        new fm_demodulator());
-    std::shared_ptr<flow> downsampler = std::shared_ptr<flow>(
-        new downsampler(5));
-    std::shared_ptr<sink> output = std::shared_ptr<sink>(
-        new file_sink("audio"));
+  int dev_index = 0;
+  int m1 = 10, m2 = 5;
+  std::string target = "air.raw";
 
-    receiver recv = receiver(input, decimator, fm_demodulator, downsampler, output);
-	recv.run();
+  std::shared_ptr<source> input = std::shared_ptr<source>(
+      new rtl_source(dev_index));
+  std::shared_ptr<flow> decimator = std::shared_ptr<flow>(
+      new complex_decimator(m1, m1));
+  std::shared_ptr<flow> fm_demodulator = std::shared_ptr<flow>(
+      new class::fm_demodulator());
+  std::shared_ptr<flow> downsampler = std::shared_ptr<flow>(
+      new class::downsampler(m2));
+  std::shared_ptr<sink> output = std::shared_ptr<sink>(
+      new file_sink(target));
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-    recv.stop();
+  receiver recv = receiver(input, decimator, fm_demodulator, downsampler, output);
+  recv.run();
 
-	return 0;
+  std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+  recv.stop();
+
+  return 0;
 }

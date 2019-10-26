@@ -1,23 +1,33 @@
 #ifndef BLOCKS_DOWNSAMPLING_H
 #define BLOCKS_DOWNSAMPLING_H
 
+#include <atomic>
 #include "basic/flow.h"
 
 
 class downsampler : public flow {
-private:
+ private:
   int m_factor;
-  int16_t[MAXIMUM_BUFFER_LENGTH] downsampled_buffer;
+  int16_t downsampled_buffer[MAXIMUM_BUFFER_LENGTH];
   int pos;
 
-  void process();
-  void stop_worker();
+  void process() override;
+  std::atomic<bool> working;
+  void stop_worker() override;
   int downsample();
 
-public:
-  downsampler(int m_factor)
-    : m_factor {m_factor}
-      pos {0} {};
+ public:
+  explicit downsampler(int m_factor)
+    : m_factor {m_factor},
+      pos {0},
+      downsampled_buffer {0},
+      working {false} {};
+  std::string get_type() const override { return "downsampler"; }
+  void run() override
+  {
+    working = true;
+    worker_t = std::thread(&downsampler::process, this);
+  }
 };
 
 #endif  /* BLOCKS_DOWNSAMPLING_H */
