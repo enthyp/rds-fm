@@ -1,22 +1,20 @@
 #include <iostream>
-#include "receiver.h"
+#include "decim_writer.h"
 
 
-void receiver::run() {
+void decim_writer::run()
+{
   output -> run();
-  downsampler -> run();
-  fm_demodulator -> run();
   decimator -> run();
   input -> run();
 
   std::cerr << "Running..." << std::endl;
 }
 
-void receiver::stop() {
+void decim_writer::stop()
+{
   input -> stop();
   decimator -> stop();
-  fm_demodulator -> stop();
-  downsampler -> stop();
   output -> stop();
 
   std::cerr << "Stopped." << std::endl;

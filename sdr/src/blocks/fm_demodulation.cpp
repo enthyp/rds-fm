@@ -1,7 +1,5 @@
-#include <cmath>
+#include "const.h"
 #include "blocks/fm_demodulation.h"
-
-#define PI 3.14159
 
 
 void fm_demodulator::process() {

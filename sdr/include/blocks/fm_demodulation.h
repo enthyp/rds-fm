@@ -1,6 +1,7 @@
 #ifndef DEMODULATION_H
 #define DEMODULATION_H
 
+#include <cmath>
 #include <string>
 #include <memory>
 #include <atomic>
@@ -20,7 +21,8 @@ class fm_demodulator : public flow {
 
  public:
   fm_demodulator()
-    : demodulated_buffer {0},
+    : flow(),
+      demodulated_buffer {0},
       working {false},
       prev_angle {0} {};
 

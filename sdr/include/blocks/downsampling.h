@@ -18,7 +18,8 @@ class downsampler : public flow {
 
  public:
   explicit downsampler(int m_factor)
-    : m_factor {m_factor},
+    : flow(),
+      m_factor {m_factor},
       pos {0},
       downsampled_buffer {0},
       working {false} {};
