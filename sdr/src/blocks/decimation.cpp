@@ -15,6 +15,8 @@ complex_decimator::complex_decimator(int m_factor, double fc, int kernel_length)
     acc_q {0.},
     window_cnt {0}
     {
+      double sum = 0;
+
       // Windowed-sinc filter (Blackman window).
       for (int i = 0; i < kernel_length; i++) {
         if (i == kernel_length / 2) {
@@ -24,6 +26,11 @@ complex_decimator::complex_decimator(int m_factor, double fc, int kernel_length)
         }
 
         kernel[i] *= (0.42 - 0.5 * cos(2 * PI * i / kernel_length) + 0.08 * cos(4 * PI * i / kernel_length));
+        sum += kernel[i];
+      }
+
+      for (int i = 0; i < kernel_length; i++) {
+        kernel[i] /= sum;
       }
     }
 

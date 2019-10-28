@@ -14,11 +14,11 @@
 
 int main(int argc, char* argv[]) {
   int dev_index = 0;
-  int freq = 101596000, sampling_rate = 2400000;
-  int m1 = 10, kernel_length = 127;
-  double fc1 = 1. / (2 * m1);
-  int m2 = 5, kernel_length2 = 65;
-  double fc2 = 1. / 10;
+  int freq = 101595000, sampling_rate = 2400000;
+  int m1 = 10, kernel_length = 257;
+  double fc1 = 1. / (1.5 * m1);
+  int m2 = 5, kernel_length2 = 257;
+  double fc2 = 1. / 8;
   std::string target = std::string(argv[1]);
 
   std::shared_ptr<source> input = std::shared_ptr<source>(
