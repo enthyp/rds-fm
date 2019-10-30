@@ -31,7 +31,7 @@ int fm_demodulator::demodulate() {
     else if (angle_diff < -PI)
       angle_diff = -2 * PI - angle_diff;
 
-    demodulated_buffer[i / 2] = (int16_t)(angle_diff / 3.14159 * (1u<<14u));
+    demodulated_buffer[i / 2] = (int16_t)(angle_diff / 3.14159 * (1u<<15u));
     prev_angle = angle;
   }
 

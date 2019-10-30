@@ -19,6 +19,7 @@ rtl_source::rtl_source(uint32_t device_index, int freq, int sampling_rate)
     }
 
     rtlsdr_reset_buffer(dev);
+
     rtlsdr_set_center_freq(dev, freq);
     rtlsdr_set_sample_rate(dev, sampling_rate);
 }

@@ -12,15 +12,18 @@
 #include "decim_writer.h"
 
 
-int main(int argc, char* argv[]) {
+int main() {
   int dev_index = 0;
-  int freq = 101595000, sampling_rate = 2400000;
+  int freq, sampling_rate = 2400000;
   int m1 = 10, kernel_length = 257;
-  double fc1 = 1. / (1.5 * m1);
-  int m2 = 5, kernel_length2 = 257;
-  double fc2 = 1. / 8;
-  std::string target = std::string(argv[1]);
+  double fc1 = 1. / (2 * m1);
+  int m2 = 5, kernel_length2 = 31;
+  double fc2 = 1. / 2;
+  std::string target;
 
+  std::cin >> freq;
+  std::cin >> target;
+ 
   std::shared_ptr<source> input = std::shared_ptr<source>(
       new rtl_source(dev_index, freq, sampling_rate));
   std::shared_ptr<flow> decimator = std::shared_ptr<flow>(
