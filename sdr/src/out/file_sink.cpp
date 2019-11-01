@@ -21,6 +21,7 @@ file_sink::file_sink(std::string & filename)
   }
 
 void file_sink::consume() {
+  int s = 0;
   while (working) {
     // Wait for data to appear in the buffer and save it to file.
     std::unique_lock<std::mutex> lock(buf_lock);
@@ -28,9 +29,10 @@ void file_sink::consume() {
 
     if (!working)
       break;
-
+    s += buf_size * sizeof(int16_t);
     (*target).write(reinterpret_cast<const char *>(input_buffer), buf_size * sizeof(int16_t));
   }
+  std::cout << s << std::endl;
 }
 
 void file_sink::stop_worker() {
