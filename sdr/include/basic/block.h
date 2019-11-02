@@ -14,14 +14,16 @@ public:
     virtual void stop() = 0;
 };
 
+template <typename T>
 class consumer : public block {
  public:
-  virtual void receive(int16_t * buffer, int len) = 0;
+  virtual void receive(T * buffer, int len) = 0;
 };
 
+template <typename T>
 class producer : public block {
  public:
-  virtual void to(std::shared_ptr<consumer> b) = 0;
+  virtual void to(std::shared_ptr<consumer<T>> b) = 0;
 };
 
 

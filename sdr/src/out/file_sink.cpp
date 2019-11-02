@@ -1,15 +1,11 @@
-#include <cstring>
 #include <iostream>
-#include <fstream>
-#include <memory>
 #include <mutex>
 
-#include "rtl-sdr.h"
 #include "out/file_sink.h"
 
-
-file_sink::file_sink(std::string & filename)
-  : working {false}
+template <typename T>
+file_sink<T>::file_sink(std::string & filename)
+  : sink<T>(), working {false}
   {
     // Open the output stream.
     if (filename != "-") {
@@ -20,22 +16,37 @@ file_sink::file_sink(std::string & filename)
     }
   }
 
-void file_sink::consume() {
-  int s = 0;
+template <typename T>
+void file_sink<T>::consume() {
+  int count = 0;
   while (working) {
     // Wait for data to appear in the buffer and save it to file.
-    std::unique_lock<std::mutex> lock(buf_lock);
-    buf_ready.wait(lock);
+    std::unique_lock<std::mutex> lock(sink<T>::buf_lock);
+    if (!sink<T>::read_ready) {
+      sink<T>::read_ready_cond.wait(lock);
+    }
 
     if (!working)
       break;
-    s += buf_size * sizeof(int16_t);
-    (*target).write(reinterpret_cast<const char *>(input_buffer), buf_size * sizeof(int16_t));
+
+    count += sink<T>::buf_size;
+    (*target).write(reinterpret_cast<const char *>(sink<T>::input_buffer), sink<T>::buf_size * sizeof(T));
+
+    sink<T>::write_ready = true;
+    sink<T>::read_ready = false;
+    lock.unlock();
+    sink<T>::write_ready_cond.notify_one();
   }
-  std::cout << s << std::endl;
+
+  std::cerr << "sink " << count << std::endl;
 }
 
-void file_sink::stop_worker() {
+template <typename T>
+void file_sink<T>::stop_worker() {
   working = false;
-  buf_ready.notify_one();
+  sink<T>::read_ready_cond.notify_one();
 }
+
+// These are necessary to avoid linkage error.
+template class file_sink<int16_t>;
+template class file_sink<double>;

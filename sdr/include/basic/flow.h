@@ -1,6 +1,7 @@
 #ifndef BLOCKS_FLOW_H
 #define BLOCKS_FLOW_H
 
+#include <iostream>
 #include <cstring>
 #include <mutex>
 #include <condition_variable>
@@ -8,22 +9,26 @@
 #include "basic/block.h"
 
 
-class flow : public producer, public consumer {
+template <typename T_in, typename T_out>
+class flow : public producer<T_out>, public consumer<T_in> {
  protected:
-  std::shared_ptr<consumer> succ;
+  std::shared_ptr<consumer<T_out>> succ;
 
-  int16_t input_buffer[MAXIMUM_BUFFER_LENGTH];
-  uint32_t buf_size;
+  T_in input_buffer[MAXIMUM_BUFFER_LENGTH];
+  int buf_size;
   int offset;
   std::mutex buf_lock;
-  std::condition_variable buf_ready;
+  std::condition_variable read_ready_cond;
+  bool read_ready;
+  std::condition_variable write_ready_cond;
+  bool write_ready;
 
   virtual void process() = 0;
   std::thread worker_t;
   virtual void stop_worker() = 0;
 
  public:
-  flow() : offset {0}, buf_size {0}, input_buffer {0} {};
+  flow() : offset {0}, buf_size {0}, input_buffer {0}, read_ready {false}, write_ready {true} {};
   void run() override = 0;
   void stop() override
   {
@@ -31,15 +36,22 @@ class flow : public producer, public consumer {
     worker_t.join();
   }
 
-  void receive(int16_t * buffer, int len) override
+  void receive(T_in * buffer, int len) override
   {
-    std::lock_guard<std::mutex> lock(buf_lock);
-    std::memcpy(input_buffer + offset, buffer, sizeof(int16_t) * len);
+    std::unique_lock<std::mutex> lock(buf_lock);
+    if (!write_ready) {
+      write_ready_cond.wait(lock, [this] { return write_ready; });
+    }
+    std::memcpy(input_buffer + offset, buffer, sizeof(T_in) * len);
     buf_size = len + offset;
-    buf_ready.notify_one();
+
+    write_ready = false;
+    read_ready = true;
+    lock.unlock();
+    read_ready_cond.notify_one();
   }
 
-  void to(std::shared_ptr<consumer> c) override
+  void to(std::shared_ptr<consumer<T_out>> c) override
   {
     succ = c;
   }

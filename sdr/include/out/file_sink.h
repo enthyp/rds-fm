@@ -5,7 +5,8 @@
 #include "basic/sink.h"
 
 
-class file_sink : public sink {
+template <class T>
+class file_sink : public sink<T> {
  private:
   std::ofstream out_file;
   std::ostream * target;
@@ -19,7 +20,7 @@ class file_sink : public sink {
   void run() override
   {
     working = true;
-    worker_t = std::thread(&file_sink::consume, this);
+    sink<T>::worker_t = std::thread(&file_sink::consume, this);
   }
 };
 

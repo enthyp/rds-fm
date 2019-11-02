@@ -1,8 +1,8 @@
 #include <iostream>
 #include "receiver.h"
 
-
-void receiver::run() {
+template <typename T_decimated, typename T_demodulated, typename T_out>
+void receiver<T_decimated, T_demodulated, T_out>::run() {
   output -> run();
   downsampler -> run();
   fm_demodulator -> run();
@@ -12,7 +12,8 @@ void receiver::run() {
   std::cerr << "Running..." << std::endl;
 }
 
-void receiver::stop() {
+template <typename T_decimated, typename T_demodulated, typename T_out>
+void receiver<T_decimated, T_demodulated, T_out>::stop() {
   input -> stop();
   decimator -> stop();
   fm_demodulator -> stop();
@@ -21,3 +22,8 @@ void receiver::stop() {
 
   std::cerr << "Stopped." << std::endl;
 }
+
+// These are necessary to avoid linkage error.
+template class receiver<double, int16_t, int16_t>;
+template class receiver<double, double, int16_t>;
+template class receiver<double, double, double>;

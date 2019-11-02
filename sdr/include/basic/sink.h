@@ -9,18 +9,23 @@
 #include "block.h"
 
 
-class sink : public consumer {
+template <typename T>
+class sink : public consumer<T> {
  protected:
-  int16_t input_buffer[MAXIMUM_BUFFER_LENGTH];
+  T input_buffer[MAXIMUM_BUFFER_LENGTH];
   uint32_t buf_size;
   std::mutex buf_lock;
-  std::condition_variable buf_ready;
+  std::condition_variable read_ready_cond;
+  bool read_ready;
+  std::condition_variable write_ready_cond;
+  bool write_ready;
 
   virtual void consume() = 0;
   std::thread worker_t;
   virtual void stop_worker() = 0;
 
  public:
+  sink() : read_ready {false}, write_ready {true} {};
   void run() override = 0;
   void stop() override
   {
@@ -28,12 +33,20 @@ class sink : public consumer {
     worker_t.join();
   }
 
-  void receive(int16_t * buffer, int len) override
+  void receive(T * buffer, int len) override
   {
-    std::lock_guard<std::mutex> lock(buf_lock);
-    std::memcpy(input_buffer, buffer, sizeof(int16_t) * len);
+    std::unique_lock<std::mutex> lock(buf_lock);
+    if (!write_ready) {
+      write_ready_cond.wait(lock, [this] { return write_ready; });
+    }
+
+    std::memcpy(input_buffer, buffer, sizeof(T) * len);
     buf_size = len;
-    buf_ready.notify_one();
+
+    write_ready = false;
+    read_ready = true;
+    lock.unlock();
+    read_ready_cond.notify_one();
   }
 };
 
