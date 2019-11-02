@@ -19,10 +19,8 @@ void fm_demodulator<T_in, T_out>::process() {
     // And send the data to output block.
     flow<T_in, T_out>::succ -> receive(demodulated_buffer, len);
 
-    flow<T_in, T_out>::write_ready = true;
     flow<T_in, T_out>::read_ready = false;
     lock.unlock();
-    flow<T_in, T_out>::write_ready_cond.notify_one();
   }
 }
 
@@ -50,6 +48,7 @@ int fm_demodulator<T_in, T_out>::demodulate() {
 template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::stop_worker() {
   working = false;
+  this -> read_ready = true;
   flow<T_in, T_out>::read_ready_cond.notify_one();
 }
 

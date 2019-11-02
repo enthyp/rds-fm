@@ -10,7 +10,6 @@ void file_source::produce() {
     usleep(10);  // ughhh... TODO: better inter-block data flow!!!
     succ -> receive(buffer, count / sizeof(int16_t));
   }
-  std::cerr << "Done! " << std::endl;
 }
 
 void file_source::stop_worker() {

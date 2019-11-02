@@ -20,15 +20,13 @@ class flow : public producer<T_out>, public consumer<T_in> {
   std::mutex buf_lock;
   std::condition_variable read_ready_cond;
   bool read_ready;
-  std::condition_variable write_ready_cond;
-  bool write_ready;
 
   virtual void process() = 0;
   std::thread worker_t;
   virtual void stop_worker() = 0;
 
  public:
-  flow() : offset {0}, buf_size {0}, input_buffer {0}, read_ready {false}, write_ready {true} {};
+  flow() : offset {0}, buf_size {0}, input_buffer {0}, read_ready {false} {};
   void run() override = 0;
   void stop() override
   {
@@ -39,13 +37,9 @@ class flow : public producer<T_out>, public consumer<T_in> {
   void receive(T_in * buffer, int len) override
   {
     std::unique_lock<std::mutex> lock(buf_lock);
-    if (!write_ready) {
-      write_ready_cond.wait(lock, [this] { return write_ready; });
-    }
     std::memcpy(input_buffer + offset, buffer, sizeof(T_in) * len);
     buf_size = len + offset;
 
-    write_ready = false;
     read_ready = true;
     lock.unlock();
     read_ready_cond.notify_one();

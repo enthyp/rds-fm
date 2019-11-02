@@ -12,9 +12,9 @@
 int main(int argc, char * argv[]) {
   int dev_index = 0;
   int freq = 101598000, sampling_rate = 2400000;
-  int m1 = 10, kernel_length = 512;
+  int m1 = 10, kernel_length = 257;
   double fc1 = 1. / (2 * 1.2 * m1);
-  int m2 = 5, kernel_length2 = 127;
+  int m2 = 5, kernel_length2 = 257;
   double fc2 = 1. / (2 * 1.2 * m2);
   std::string target = std::string(argv[1]);
 
@@ -45,7 +45,7 @@ int main(int argc, char * argv[]) {
   //decim_writer<double> recv = decim_writer<double>(input, decimator, output);
   recv.run();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(8000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50000));
   recv.stop();
 
   return 0;

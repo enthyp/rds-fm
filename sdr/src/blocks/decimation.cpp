@@ -39,7 +39,7 @@ void decimator<T_in, T_out>::process() {
     // Wait for data in the buffer.
     std::unique_lock<std::mutex> lock(flow<T_in, T_out>::buf_lock);
     if (!flow<T_in, T_out>::read_ready) {
-      flow<T_in, T_out>::read_ready_cond.wait(lock);
+      flow<T_in, T_out>::read_ready_cond.wait(lock, [this] { return this -> read_ready; });
     }
 
     if (!working)
@@ -50,18 +50,15 @@ void decimator<T_in, T_out>::process() {
     // And send the data to output block.
     flow<T_in, T_out>::succ -> receive(decimated_buffer, len);
 
-    flow<T_in, T_out>::write_ready = true;
     flow<T_in, T_out>::read_ready = false;
     lock.unlock();
-    flow<T_in, T_out>::write_ready_cond.notify_one();
   }
-
-  std::cerr << "dec " << count << std::endl;
 }
 
 template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::stop_worker() {
   working = false;
+  this -> read_ready = true;
   flow<T_in, T_out>::read_ready_cond.notify_one();
 }
 

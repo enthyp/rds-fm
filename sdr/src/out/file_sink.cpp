@@ -23,7 +23,7 @@ void file_sink<T>::consume() {
     // Wait for data to appear in the buffer and save it to file.
     std::unique_lock<std::mutex> lock(sink<T>::buf_lock);
     if (!sink<T>::read_ready) {
-      sink<T>::read_ready_cond.wait(lock);
+      sink<T>::read_ready_cond.wait(lock, [this] {return this -> read_ready;});
     }
 
     if (!working)
@@ -32,18 +32,15 @@ void file_sink<T>::consume() {
     count += sink<T>::buf_size;
     (*target).write(reinterpret_cast<const char *>(sink<T>::input_buffer), sink<T>::buf_size * sizeof(T));
 
-    sink<T>::write_ready = true;
     sink<T>::read_ready = false;
     lock.unlock();
-    sink<T>::write_ready_cond.notify_one();
   }
-
-  std::cerr << "sink " << count << std::endl;
 }
 
 template <typename T>
 void file_sink<T>::stop_worker() {
   working = false;
+  this -> read_ready = true;
   sink<T>::read_ready_cond.notify_one();
 }
 

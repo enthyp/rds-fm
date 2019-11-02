@@ -17,15 +17,13 @@ class sink : public consumer<T> {
   std::mutex buf_lock;
   std::condition_variable read_ready_cond;
   bool read_ready;
-  std::condition_variable write_ready_cond;
-  bool write_ready;
 
   virtual void consume() = 0;
   std::thread worker_t;
   virtual void stop_worker() = 0;
 
  public:
-  sink() : read_ready {false}, write_ready {true} {};
+  sink() : read_ready {false} {};
   void run() override = 0;
   void stop() override
   {
@@ -36,14 +34,10 @@ class sink : public consumer<T> {
   void receive(T * buffer, int len) override
   {
     std::unique_lock<std::mutex> lock(buf_lock);
-    if (!write_ready) {
-      write_ready_cond.wait(lock, [this] { return write_ready; });
-    }
 
     std::memcpy(input_buffer, buffer, sizeof(T) * len);
     buf_size = len;
 
-    write_ready = false;
     read_ready = true;
     lock.unlock();
     read_ready_cond.notify_one();
