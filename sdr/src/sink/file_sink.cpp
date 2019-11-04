@@ -20,7 +20,7 @@ template <typename T>
 void file_sink<T>::consume() {
   int count = 0;
   while (working) {
-    // Wait for data to appear in the buffer and save it to file.
+    // Wait for data to appear source the buffer and save it to file.
     std::unique_lock<std::mutex> lock(sink<T>::buf_lock);
     if (!sink<T>::read_ready) {
       sink<T>::read_ready_cond.wait(lock, [this] {return this -> read_ready;});

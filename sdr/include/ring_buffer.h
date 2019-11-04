@@ -33,8 +33,8 @@ class ring_buffer {
 //
 // Reader:
 // 1. suspend reader when no data available (cond variable)
-// 2. busy wait in reader
-// FOR NOW: (2, 2) - reject excessive writes (easy), busy wait in reader (should rarely happen)
+// 2. busy wait source reader
+// FOR NOW: (2, 2) - reject excessive writes (easy), busy wait source reader (should rarely happen)
 
 
 class buffer_full_exception : public std::runtime_error {

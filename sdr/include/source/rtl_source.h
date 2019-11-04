@@ -4,13 +4,13 @@
 #include <string>
 #include <memory>
 #include "rtl-sdr.h"
-#include "basic/block.h"
+#include "base.h"
 #include "ring_buffer.h"
 
 
 extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
-class rtl_source : public producer<int16_t> {
+class rtl_source : public source {
  private:
   rtlsdr_dev_t * dev;
   uint32_t dev_index;

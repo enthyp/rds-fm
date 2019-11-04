@@ -2,10 +2,10 @@
 
 #include "in/rtl_source.h"
 #include "in/file_source.h"
-#include "blocks/decimation.h"
-#include "blocks/fm_demodulation.h"
+#include "flow/decimation.h"
+#include "flow/fm_demodulation.h"
 #include "out/file_sink.h"
-#include "receiver.h"
+#include "pipeline.h"
 #include "test.h"
 
 
@@ -25,7 +25,7 @@ int main(int argc, char * argv[]) {
 //  std::string source_file = "../data/iq_speech";
 //  std::shared_ptr<source> input = std::shared_ptr<source>(new file_source(source_file));
 
-  // Add processing blocks for demodulation.
+  // Add processing flow for demodulation.
   std::shared_ptr<flow<int16_t, double>> decimator = std::shared_ptr<flow<int16_t, double>>(
       new complex_decimator<int16_t, double>(m1, fc1, kernel_length));
 
@@ -39,8 +39,8 @@ int main(int argc, char * argv[]) {
   std::shared_ptr<sink<int16_t>> output = std::shared_ptr<sink<int16_t>>(
       new file_sink<int16_t>(target));
 
-  receiver<double, int16_t, int16_t> recv =
-      receiver<double, int16_t , int16_t>(input, decimator, fm_demodulator, decimator2, output);
+  pipeline<double, int16_t, int16_t> recv =
+      pipeline<double, int16_t , int16_t>(input, decimator, fm_demodulator, decimator2, output);
   //demod_writer<double, double > recv = demod_writer<double, double >(input, decimator, fm_demodulator, output);
   //decim_writer<double> recv = decim_writer<double>(input, decimator, output);
   recv.run();

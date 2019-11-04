@@ -1,6 +1,7 @@
 #include <iostream>
 #include "const.h"
-#include "blocks/decimation.h"
+#include "flow/decimation.h"
+#include <variant>
 
 template <typename T_in, typename T_out>
 decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
@@ -37,7 +38,7 @@ template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::process() {
   int count = 0;
   while (working) {
-    // Wait for data in the buffer.
+    // Wait for data source the buffer.
     std::unique_lock<std::mutex> lock(flow<T_in, T_out>::buf_lock);
     if (!flow<T_in, T_out>::read_ready) {
       flow<T_in, T_out>::read_ready_cond.wait(lock, [this] { return this -> read_ready; });

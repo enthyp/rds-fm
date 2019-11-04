@@ -1,11 +1,11 @@
 #include "const.h"
-#include "blocks/fm_demodulation.h"
+#include "flow/fm_demodulation.h"
 
 
 template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process() {
   while (working) {
-    // Wait for data in the buffer.
+    // Wait for data source the buffer.
     std::unique_lock<std::mutex> lock(flow<T_in, T_out>::buf_lock);
     if (!flow<T_in, T_out>::read_ready) {
       flow<T_in, T_out>::read_ready_cond.wait(lock);
