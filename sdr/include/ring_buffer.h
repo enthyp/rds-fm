@@ -3,34 +3,38 @@
 
 #include <vector>
 #include <stdexcept>
-#include <mutex>
-#include <condition_variable>
 
 
 template <class T, int capacity>
 class ring_buffer {
  private:
   std::vector<T> buffer;
-  int head, tail, size;
+  int head, offset, size;
   bool empty;
-  std::mutex lock;
-  std::condition_variable ready_cond;
-  bool ready;
 
  public:
   ring_buffer(int size)
     : buffer (size, capacity),
       head {0},
-      tail {0},
+      offset {0},
       size {size},
       empty {true} {};
   void push(T el);
   T take();
+  int available_write();
+  int available_read();
 };
+
 // TODO: how to balance reads and writes?
-// 1: no mutex - writes have to wait until reads are done (maybe move by blocks of 16384)
-// 2: with mutex - writes can overwrite unread bits (not a ring buffer per se)
-//    justification: we only need to process the most fresh data I guess...
+// Writer:
+// 1: let writers overwrite
+// 2: reject excessive writes
+// 3: reject excessive writes
+//
+// Reader:
+// 1. suspend reader when no data available (cond variable)
+// 2. busy wait in reader
+// FOR NOW: reject excessive writes (easy), busy wait in reader (should rarely happen)
 
 
 class buffer_full_exception : public std::runtime_error {
@@ -44,6 +48,5 @@ class buffer_empty_exception : public std::runtime_error {
   buffer_empty_exception() :
       std::runtime_error("Buffer empty!") {};
 };
-
 
 #endif  /* INCLUDE_RING_BUFFER_H */
