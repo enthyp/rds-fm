@@ -13,7 +13,7 @@ class rtl_source : public source {
 private:
   rtlsdr_dev_t * dev;
   uint32_t dev_index;
-  int16_t im_buffer[MAXIMUM_BUFFER_LENGTH];
+  int16_t out_buffer[MAXIMUM_BUFFER_LENGTH];
 
   void produce() override ;
   void stop_worker() override ;
