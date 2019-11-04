@@ -4,30 +4,26 @@
 #include <string>
 #include <memory>
 #include "rtl-sdr.h"
-#include "basic/source.h"
+#include "basic/block.h"
+#include "ring_buffer.h"
 
 
 extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
-class rtl_source : public source {
-private:
+class rtl_source : public producer<int16_t> {
+ private:
   rtlsdr_dev_t * dev;
   uint32_t dev_index;
-  int16_t out_buffer[MAXIMUM_BUFFER_LENGTH];
 
-  void produce() override ;
-  void stop_worker() override ;
+  void work() override;
+  void stop_worker() override;
+  void stop() override;
 
   friend void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
-public:
+ public:
   rtl_source(uint32_t dev_index, int freq, int sampling_rate);
   std::string get_type() const override { return "rtl_source"; }
-  void run() override
-  {
-    worker_t = std::thread(&rtl_source::produce, this);
-  }
-  void stop() override;
 };
 
 #endif  /* IN_RTL_SOURCE_H */

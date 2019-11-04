@@ -3,15 +3,19 @@
 #include "in/file_source.h"
 
 
-void file_source::produce() {
-  while (working && source_file.read(reinterpret_cast<char*>(buffer), DEFAULT_BUFFER_LENGTH)) {
-    // TODO: use Boost to provide output rate?
-    int count = source_file.gcount();
-    usleep(10);  // ughhh... TODO: better inter-block data flow!!!
-    succ -> receive(buffer, count / sizeof(int16_t));
+void file_source::work() {
+  while (working && source_file.read(reinterpret_cast<char *>(im_buffer), DEFAULT_BUFFER_LENGTH)) {
+    if (output_buffer.available_write() >= DEFAULT_BUFFER_LENGTH) {
+      int count = source_file.gcount();
+
+      for (int i = 0; i < count; i++) {
+        output_buffer.push(im_buffer[i]);
+      }
+    }  // else drop it...
+    usleep(10);  // ughhh...
   }
 }
 
 void file_source::stop_worker() {
-  working = false;
+
 }

@@ -3,10 +3,8 @@
 
 template <class T, int capacity>
 void ring_buffer<T, capacity>::push(T el) {
-  if (empty || offset != 0) {
-    int tail = (head + offset) & size;
-    buffer[tail] = el;
-    offset++;
+  if (empty || offset < size) {
+    buffer[(head + offset++) % size] = el;
     empty = false;
   } else {
     throw buffer_full_exception();

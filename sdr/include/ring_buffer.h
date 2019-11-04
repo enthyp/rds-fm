@@ -13,11 +13,11 @@ class ring_buffer {
   bool empty;
 
  public:
-  ring_buffer(int size)
-    : buffer (size, capacity),
+  ring_buffer()
+    : buffer (capacity, 0),
       head {0},
       offset {0},
-      size {size},
+      size {capacity},
       empty {true} {};
   void push(T el);
   T take();
@@ -29,12 +29,12 @@ class ring_buffer {
 // Writer:
 // 1: let writers overwrite
 // 2: reject excessive writes
-// 3: reject excessive writes
+// 3: wait for free space to write to
 //
 // Reader:
 // 1. suspend reader when no data available (cond variable)
 // 2. busy wait in reader
-// FOR NOW: reject excessive writes (easy), busy wait in reader (should rarely happen)
+// FOR NOW: (2, 2) - reject excessive writes (easy), busy wait in reader (should rarely happen)
 
 
 class buffer_full_exception : public std::runtime_error {

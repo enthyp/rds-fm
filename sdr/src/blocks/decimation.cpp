@@ -16,6 +16,7 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
       double sum = 0;
 
       // Windowed-sinc filter (Blackman window).
+      // TODO: can be generalized (strategy pattern) to any FIR filter!
       for (int i = 0; i < kernel_length; i++) {
         if (i == kernel_length / 2) {
           kernel[i] = 2 * PI * fc;

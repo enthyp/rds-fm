@@ -1,37 +1,37 @@
 #include <fstream>
 #include <vector>
 #include <atomic>
-#include "basic/source.h"
+#include <ring_buffer.h>
+#include "basic/block.h"
 
 #ifndef IN_FILE_SOURCE_H
 #define IN_FILE_SOURCE_H
 
-class file_source : public source {
+
+class file_source : public producer<int16_t> {
  private:
   std::string source_path;
   std::ifstream source_file;
-  int16_t buffer[DEFAULT_BUFFER_LENGTH];
+  int16_t im_buffer[MAXIMUM_BUFFER_LENGTH] {0};
 
   std::atomic<bool> working;
-
-  void produce() override;
-  void stop_worker() override;
+  void work() override;
+  void stop_worker() override { working = false; }
 
  public:
   explicit file_source(std::string & filepath)
-    : source_path {filepath},
-      working {false} {};
+    : source_path {filepath} {};
   std::string get_type() const override { return "file_source"; }
   void run() override
   {
-    source_file.open(source_path);
     working = true;
-    worker_t = std::thread(&file_source::produce, this);
+    source_file.open(source_path);
+    producer<int16_t>::run();
   }
   void stop() override {
-    source::stop();
+    producer<int16_t>::stop();
     source_file.close();
-  };
+  }
 };
 
 #endif  /* IN_FILE_SOURCE_H */
