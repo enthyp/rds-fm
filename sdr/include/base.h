@@ -48,13 +48,20 @@ template <class T_in, class T_out>
 class flow : public producer<T_out>, public consumer<T_in> {
  protected:
   std::atomic_bool working;
+  virtual void process() = 0;
+  void stop_worker() override { working = false; }
 
   void work() override {
     while (working) {
-      // TODO: Get data from input buffer, process them, dump them to the output buffer.
-
+      process();
     }
   };
+
+  void run() override
+  {
+    working = true;
+    consumer<T_in>::run();
+  }
 };
 
 

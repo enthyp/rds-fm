@@ -52,7 +52,7 @@ extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
 
   if (len <= source -> output_buffer . available_write()) {
     for (int i = 0; i < (int)len; i++) {
-      source -> output_buffer.push((int16_t)buf[i] - 127);
+      source -> output_buffer -> push((int16_t)buf[i] - 127);
     }
   }  // ...else drop it all.
 }

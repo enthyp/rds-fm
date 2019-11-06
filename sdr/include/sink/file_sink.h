@@ -2,7 +2,7 @@
 #define OUT_FILE_SINK_H
 
 #include <fstream>
-#include "sink/file_sink.h"
+#include "base.h"
 
 
 template <class T>

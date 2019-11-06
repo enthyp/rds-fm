@@ -41,7 +41,7 @@ class ring_buffer {
     int length;
   };
 
-  block take_block() throw(buffer_empty_exception);
+  block take_block() noexcept (false);
 };
 
 // TODO: how to balance reads and writes?
