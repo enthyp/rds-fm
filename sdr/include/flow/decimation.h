@@ -4,7 +4,7 @@
 #include <cmath>
 #include <atomic>
 #include <vector>
-#include "basic/flow.h"
+#include "flow/decimation.h"
 
 
 template <class T_in, class T_out>
@@ -45,6 +45,7 @@ class complex_decimator : public decimator<T_in, T_out> {
 };
 
 template <class T_in, class T_out>
+class real_decimator : public decimator<T_in, T_out> {
  private:
   double acc;
   int decimate() override;

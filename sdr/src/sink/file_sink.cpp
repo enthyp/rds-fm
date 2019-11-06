@@ -1,11 +1,11 @@
 #include <iostream>
 #include <mutex>
 
-#include "out/file_sink.h"
+#include "sink/file_sink.h"
 
 template <typename T>
 file_sink<T>::file_sink(std::string & filename)
-  : sink<T>(), working {false}
+  : working {false}
   {
     // Open the output stream.
     if (filename != "-") {
@@ -17,31 +17,11 @@ file_sink<T>::file_sink(std::string & filename)
   }
 
 template <typename T>
-void file_sink<T>::consume() {
+void file_sink<T>::work() {
   int count = 0;
   while (working) {
-    // Wait for data to appear source the buffer and save it to file.
-    std::unique_lock<std::mutex> lock(sink<T>::buf_lock);
-    if (!sink<T>::read_ready) {
-      sink<T>::read_ready_cond.wait(lock, [this] {return this -> read_ready;});
-    }
-
-    if (!working)
-      break;
-
-    count += sink<T>::buf_size;
     (*target).write(reinterpret_cast<const char *>(sink<T>::input_buffer), sink<T>::buf_size * sizeof(T));
-
-    sink<T>::read_ready = false;
-    lock.unlock();
   }
-}
-
-template <typename T>
-void file_sink<T>::stop_worker() {
-  working = false;
-  this -> read_ready = true;
-  sink<T>::read_ready_cond.notify_one();
 }
 
 // These are necessary to avoid linkage error.

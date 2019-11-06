@@ -2,16 +2,16 @@
 #define OUT_FILE_SINK_H
 
 #include <fstream>
-#include "basic/sink.h"
+#include "sink/file_sink.h"
 
 
 template <class T>
-class file_sink : public sink<T> {
+class file_sink : public consumer<T> {
  private:
   std::ofstream out_file;
   std::ostream * target;
-  void consume() override;
-  void stop_worker() override;
+  void work() override;
+  void stop_worker() override { working = false; }
   std::atomic<bool> working;
 
  public:
@@ -20,7 +20,7 @@ class file_sink : public sink<T> {
   void run() override
   {
     working = true;
-    sink<T>::worker_t = std::thread(&file_sink::consume, this);
+    consumer<T>::run();
   }
 };
 

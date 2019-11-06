@@ -11,7 +11,7 @@ class file_source : public source {
  private:
   std::string source_path;
   std::ifstream source_file;
-  int16_t im_buffer[MAXIMUM_BUFFER_LENGTH];
+  int16_t im_buffer[MAXIMUM_BUFFER_LENGTH] {0};
 
   std::atomic<bool> working;
   void work() override;
@@ -19,7 +19,7 @@ class file_source : public source {
 
  public:
   explicit file_source(std::string & filepath)
-    : source_path {filepath} {};
+    : source_path {filepath}, working {false} {};
   std::string get_type() const override { return "file_source"; }
   void run() override
   {

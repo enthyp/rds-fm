@@ -1,7 +1,7 @@
 #include <iostream>
 #include "const.h"
 #include "flow/decimation.h"
-#include <variant>
+
 
 template <typename T_in, typename T_out>
 decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
