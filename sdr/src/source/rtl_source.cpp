@@ -21,6 +21,7 @@ rtl_source::rtl_source(uint32_t device_index, int freq, int sampling_rate)
 
     rtlsdr_set_center_freq(dev, freq);
     rtlsdr_set_sample_rate(dev, sampling_rate);
+    rtlsdr_set_tuner_gain_mode(dev, 0);
 }
 
 extern "C" void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);

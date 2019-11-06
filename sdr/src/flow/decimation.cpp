@@ -144,4 +144,5 @@ template class complex_decimator<int16_t, double>;
 template class complex_decimator<double, int16_t>;
 template class complex_decimator<double, double>;
 template class real_decimator<double, double>;
+template class real_decimator<double, int16_t>;
 template class real_decimator<int16_t, int16_t>;

@@ -11,7 +11,7 @@
 
 int main(int argc, char * argv[]) {
   int dev_index = 0;
-  int freq = 101598000, sampling_rate = 2400000;
+  int freq = 101596000, sampling_rate = 2400000;
   int m1 = 10, kernel_length = 257;
   double fc1 = 1. / (2 * 1.2 * m1);
   int m2 = 5, kernel_length2 = 257;
@@ -19,11 +19,12 @@ int main(int argc, char * argv[]) {
   std::string target = std::string(argv[1]);
 
   // Add input block.
-  std::shared_ptr<source> input = std::shared_ptr<source>(
-      new rtl_source(dev_index, freq, sampling_rate));
 
-//  std::string source_file = "../data/iq_speech";
-//  std::shared_ptr<source> input = std::shared_ptr<source>(new file_source(source_file));
+  //std::string source_file = "../data/iq_speech";
+  //std::shared_ptr<source> input = std::shared_ptr<source>(new file_source(source_file));
+
+    std::shared_ptr<source> input = std::shared_ptr<source>(
+      new rtl_source(dev_index, freq, sampling_rate));
 
   // Add processing flow for demodulation.
   std::shared_ptr<flow<int16_t, double>> decimator = std::shared_ptr<flow<int16_t, double>>(
@@ -41,11 +42,12 @@ int main(int argc, char * argv[]) {
 
   pipeline<double, int16_t, int16_t> recv =
       pipeline<double, int16_t , int16_t>(input, decimator, fm_demodulator, decimator2, output);
-  //demod_writer<double, double > recv = demod_writer<double, double >(input, decimator, fm_demodulator, output);
+  //iq_writer recv = iq_writer(input, output);
+  //demod_writer<double, int16_t > recv = demod_writer<double, int16_t >(input, decimator, fm_demodulator, output);
   //decim_writer<double> recv = decim_writer<double>(input, decimator, output);
   recv.run();
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(50000));
+  getchar();
   recv.stop();
 
   return 0;
