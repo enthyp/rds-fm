@@ -11,12 +11,11 @@
 class block {
  protected:
   std::thread worker_t;
-  virtual void work() = 0;
+  virtual void worker() = 0;
   virtual void stop_worker() = 0;
 
  public:
-  virtual std::string get_type() const = 0;
-  virtual void run() { worker_t = std::thread(&block::work, this); };
+  virtual void run() { worker_t = std::thread(&block::worker, this); };
   virtual void stop()
   {
     stop_worker();
@@ -30,7 +29,7 @@ class producer : virtual public block {
  protected:
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * output_buffer;
  public:
-  void to(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { output_buffer = buffer; }
+  void to(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { output_buffer = &buffer; }
 };
 
 template <typename T>
@@ -38,7 +37,7 @@ class consumer : virtual public block {
  protected:
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * input_buffer;
  public:
-  void from(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { input_buffer = buffer; }
+  void from(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { input_buffer = &buffer; }
 };
 
 // By convention, RTL-SDR produces int16_t and so shall any other source.
@@ -48,16 +47,18 @@ template <class T_in, class T_out>
 class flow : public producer<T_out>, public consumer<T_in> {
  protected:
   std::atomic_bool working;
-  virtual void process_buffer() = 0;
-  void stop_worker() override { working = false; }
-  void work() override
+
+  void worker() override
   {
     while (working) {
       process_buffer();
     }
   };
+  void stop_worker() override { working = false; }
+  virtual void process_buffer() = 0;
 
  public:
+  flow<T_in, T_out>() : working {false} {};
   void run() override
   {
     working = true;

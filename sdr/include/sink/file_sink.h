@@ -10,13 +10,13 @@ class file_sink : public consumer<T> {
  private:
   std::ofstream out_file;
   std::ostream * target;
-  void work() override;
-  void stop_worker() override { working = false; }
   std::atomic<bool> working;
+
+  void worker() override;
+  void stop_worker() override { working = false; }
 
  public:
   explicit file_sink(std::string & filename);
-  std::string get_type() const override { return "file_sink"; }
   void run() override
   {
     working = true;

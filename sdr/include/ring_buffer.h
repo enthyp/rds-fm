@@ -21,8 +21,8 @@ class buffer_empty_exception : public std::runtime_error {
 template <class T, int capacity>
 class ring_buffer {
  private:
-  std::vector<T> buffer;
   int head, offset, size;
+  std::vector<T> buffer;
 
  public:
   ring_buffer()
@@ -32,8 +32,7 @@ class ring_buffer {
       size {capacity} {};
   int available_write() { return size - offset; }
   int available_read() { return offset; }
-
-  void push(T element);
+  void push(T element) noexcept (false);
   T take(int index) noexcept (false);
 
   struct block {
@@ -42,8 +41,7 @@ class ring_buffer {
   };
 
   block take_block() noexcept (false);
-
-  void advance(int steps);
+  void advance(int steps) noexcept (false);
 };
 
 // TODO: how to balance reads and writes?

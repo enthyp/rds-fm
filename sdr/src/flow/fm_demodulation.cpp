@@ -30,7 +30,7 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
     else if (angle_diff < -PI)
       angle_diff = -2 * PI - angle_diff;
 
-    demodulated_buffer[i / 2] = angle_diff;
+    demodulated_buffer[i / 2] = angle_diff / PI * (1u << 15u);
     prev_angle = angle;
   }
 
@@ -39,5 +39,5 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
 
 
 // These are necessary to avoid linkage error.
-template class fm_demodulator<double, double>;
+template class fm_demodulator<int16_t, int16_t>;
 template class fm_demodulator<double, int16_t>;

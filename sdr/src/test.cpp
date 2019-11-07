@@ -84,3 +84,4 @@ void iq_writer::stop()
 template class demod_writer<double>;
 template class demod_writer<int16_t>;
 template class decim_writer<double>;
+template class decim_writer<int16_t>;

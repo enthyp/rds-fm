@@ -1,3 +1,4 @@
+#include <const.h>
 #include "ring_buffer.h"
 
 
@@ -38,5 +39,13 @@ typename ring_buffer<T, capacity>::block ring_buffer<T, capacity>::take_block()
 template <class T, int capacity>
 void ring_buffer<T, capacity>::advance(int steps)
 {
-  head = (head + steps) % size;
+  if (steps <= offset) {
+    head = (head + steps) % size;
+  } else {
+    throw std::out_of_range("Illegal buffer head operation.");
+  }
 }
+
+// These are necessary to avoid linkage error.
+template class ring_buffer<double, MAXIMUM_BUFFER_LENGTH>;
+template class ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH>;

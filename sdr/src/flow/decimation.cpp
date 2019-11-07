@@ -6,12 +6,12 @@
 
 template <typename T_in, typename T_out>
 decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
-  : m_factor {m_factor},
+  : flow<T_in, T_out>(),
+    m_factor {m_factor},
     fc {fc},
     kernel_length {kernel_length},
     kernel (kernel_length, 0.),
     decimated_buffer {0},
-    working {false},
     window_cnt {0}
     {
       double sum = 0;
@@ -41,7 +41,7 @@ void decimator<T_in, T_out>::process_buffer() {
       int len = decimate(to_read);
       int to_write = this -> output_buffer -> available_write();
       for (int i = 0; i < std::min(len, to_write); i++) {
-        this -> output_buffer -> put(decimated_buffer[i]);
+        this -> output_buffer -> push(decimated_buffer[i]);
       }
     }
 }
@@ -105,9 +105,8 @@ int real_decimator<T_in, T_out>::decimate(int len) {
 };
 
 // These are necessary to avoid linkage error.
+template class complex_decimator<int16_t, int16_t>;
 template class complex_decimator<int16_t, double>;
-template class complex_decimator<double, int16_t>;
 template class complex_decimator<double, double>;
 template class real_decimator<double, double>;
-template class real_decimator<double, int16_t>;
 template class real_decimator<int16_t, int16_t>;

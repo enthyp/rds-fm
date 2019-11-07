@@ -4,7 +4,7 @@
 #include <cmath>
 #include <atomic>
 #include <vector>
-#include "flow/decimation.h"
+#include "base.h"
 
 
 template <class T_in, class T_out>
@@ -20,11 +20,10 @@ class decimator : public flow<T_in, T_out> {
 
   void process_buffer() override;
   std::atomic<bool> working;
-  virtual int decimate() = 0;
+  virtual int decimate(int len) = 0;
 
  public:
   decimator(int m_factor, double fc, int kernel_length);
-  std::string get_type() const override { return "complex_decimator"; }
 };
 
 template <class T_in, class T_out>

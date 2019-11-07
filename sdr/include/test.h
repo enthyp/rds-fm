@@ -46,9 +46,9 @@ class demod_writer {
  private:
   rtl_source input;
   ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
-  flow<int16_t, T> decimator;
+  complex_decimator<int16_t, T> decimator;
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> med2;
-  flow<T, int16_t> demodulator;
+  fm_demodulator<T, int16_t> demodulator;
   ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med3;
   file_sink<int16_t> output;
 
@@ -76,7 +76,7 @@ class decim_writer {
  private:
   rtl_source input;
   ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
-  flow<int16_t, T> decimator;
+  complex_decimator<int16_t, T> decimator;
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> med2;
   file_sink<T> output;
 

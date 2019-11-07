@@ -19,7 +19,7 @@ file_sink<T>::file_sink(std::string & filename)
   }
 
 template <typename T>
-void file_sink<T>::work() {
+void file_sink<T>::worker() {
   while (working) {
     try {
       typename ring_buffer<T, MAXIMUM_BUFFER_LENGTH>::block b = consumer<T>::input_buffer -> take_block();

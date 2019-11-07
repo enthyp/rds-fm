@@ -18,13 +18,12 @@ rtl_source::rtl_source(uint32_t device_index, int freq, int sampling_rate)
     }
 
     rtlsdr_reset_buffer(dev);
-
     rtlsdr_set_center_freq(dev, freq);
     rtlsdr_set_sample_rate(dev, sampling_rate);
     rtlsdr_set_tuner_gain_mode(dev, 0);
 }
 
-void rtl_source::work() {
+void rtl_source::worker() {
   rtlsdr_read_async(dev, &rtlsdr_callback, this, 0, DEFAULT_BUFFER_LENGTH);
 }
 
@@ -50,7 +49,7 @@ void rtl_source::stop() {
 extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
   auto source = (rtl_source*) ctx;
 
-  if (len <= source -> output_buffer . available_write()) {
+  if (len <= source -> output_buffer -> available_write()) {
     for (int i = 0; i < (int)len; i++) {
       source -> output_buffer -> push((int16_t)buf[i] - 127);
     }
