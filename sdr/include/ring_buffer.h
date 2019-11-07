@@ -21,17 +21,19 @@ class buffer_empty_exception : public std::runtime_error {
 template <class T, int capacity>
 class ring_buffer {
  private:
-  int head, offset, size;
+  bool empty;
+  int head, tail, size;
   std::vector<T> buffer;
 
  public:
   ring_buffer()
     : buffer (capacity, 0),
+      empty {true},
       head {0},
-      offset {0},
+      tail {0},
       size {capacity} {};
-  int available_write() { return size - offset; }
-  int available_read() { return offset; }
+  int available_write();
+  int available_read();
   void push(T element) noexcept (false);
   T take(int index) noexcept (false);
 

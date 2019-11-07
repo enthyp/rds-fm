@@ -39,6 +39,7 @@ void decimator<T_in, T_out>::process_buffer() {
     int to_read = this -> input_buffer -> available_read();
     if (to_read) {
       int len = decimate(to_read);
+
       int to_write = this -> output_buffer -> available_write();
       for (int i = 0; i < std::min(len, to_write); i++) {
         this -> output_buffer -> push(decimated_buffer[i]);
@@ -67,8 +68,7 @@ int complex_decimator<T_in, T_out>::decimate(int len) {
 
     this -> decimated_buffer[j] = (T_out)acc_i;
     this -> decimated_buffer[j + 1] = (T_out)acc_q;
-    acc_i = acc_q = 0;
-    this -> window_cnt = 0;
+    this -> window_cnt = acc_i = acc_q = 0;
     i += 2 * (this -> m_factor - this -> kernel_length);
     this -> input_buffer -> advance(2 * this -> m_factor);
     j += 2;
@@ -94,8 +94,7 @@ int real_decimator<T_in, T_out>::decimate(int len) {
     }
 
     this -> decimated_buffer[j] = (T_out)acc;
-    acc = 0;
-    this -> window_cnt = 0;
+    this -> window_cnt = acc = 0;
     i += this -> m_factor - this -> kernel_length;
     this -> input_buffer -> advance(this -> m_factor);
     j++;

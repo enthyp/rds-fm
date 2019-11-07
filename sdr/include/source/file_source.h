@@ -24,8 +24,8 @@ class file_source : public source {
   void run() override
   {
     working = true;
-    source_file.open(source_path);
-    producer<int16_t>::run();
+    source_file.open(source_path, std::ios::binary | std::ios::in);
+    source::run();
   }
   void stop() override
   {

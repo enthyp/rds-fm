@@ -1,8 +1,10 @@
 #include <unistd.h>
+#include <iostream>
 #include "source/file_source.h"
 
 
 void file_source::worker() {
+  int sum = 0;
   while (working && source_file.read(reinterpret_cast<char *>(im_buffer), DEFAULT_BUFFER_LENGTH)) {
     if (output_buffer -> available_write() >= DEFAULT_BUFFER_LENGTH) {
       int count = source_file.gcount();
@@ -13,4 +15,6 @@ void file_source::worker() {
     }  // else drop it...
     usleep(10);  // ughhh...
   }
+
+  std::cerr << "Done!" << std::endl;
 }

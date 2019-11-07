@@ -6,7 +6,7 @@
 #include <sink/file_sink.h>
 #include <flow/decimation.h>
 #include <flow/fm_demodulation.h>
-
+#include <source/file_source.h>
 
 class fm_receiver {
  private:
@@ -74,15 +74,17 @@ class demod_writer {
 template <class T>
 class decim_writer {
  private:
-  rtl_source input;
+  //rtl_source input;
+  file_source input;
   ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
   complex_decimator<int16_t, T> decimator;
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> med2;
   file_sink<T> output;
 
 public:
-    decim_writer(uint32_t dev_index, int freq, int sampling_rate, int kernel_len1, std::string & target)
-      : input {dev_index, freq, sampling_rate},
+    decim_writer(uint32_t dev_index, int freq, int sampling_rate, int kernel_len1, std::string &source, std::string & target)
+      : //input {dev_index, freq, sampling_rate},
+        input {source},
         decimator {10, 1. / (2 * 1.2 * 10), kernel_len1},
         output {target}
     {
@@ -99,13 +101,15 @@ public:
 
 class iq_writer {
  private:
-  rtl_source input;
+  //rtl_source input;
+  file_source input;
   ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med;
   file_sink<int16_t> output;
 
   public:
-    iq_writer(uint32_t dev_index, int freq, int sampling_rate, std::string & target)
-      : input {dev_index, freq, sampling_rate},
+    iq_writer(uint32_t dev_index, int freq, int sampling_rate, std::string & source, std::string & target)
+      : input {source},
+        // input {dev_index, freq, sampling_rate},
         output {target}
     {
       input.to(med);
