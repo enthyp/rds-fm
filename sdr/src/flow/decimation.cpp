@@ -1,12 +1,12 @@
 #include <iostream>
+#include <algorithm>
 #include "const.h"
 #include "flow/decimation.h"
 
 
 template <typename T_in, typename T_out>
 decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
-  : flow<T_in, T_out>(),
-    m_factor {m_factor},
+  : m_factor {m_factor},
     fc {fc},
     kernel_length {kernel_length},
     kernel (kernel_length, 0.),
@@ -35,34 +35,17 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
     }
 
 template <typename T_in, typename T_out>
-void decimator<T_in, T_out>::process() {
-  int count = 0;
-  while (working) {
-    // Wait for data source the buffer.
-    std::unique_lock<std::mutex> lock(flow<T_in, T_out>::buf_lock);
-    if (!flow<T_in, T_out>::read_ready) {
-      flow<T_in, T_out>::read_ready_cond.wait(lock, [this] { return this -> read_ready; });
+void decimator<T_in, T_out>::process_buffer() {
+    int to_read = this -> input_buffer -> available_read();
+    if (to_read) {
+      int len = decimate(to_read);
+      int to_write = this -> output_buffer -> available_write();
+      for (int i = 0; i < std::min(len, to_write); i++) {
+        this -> output_buffer -> put(decimated_buffer[i]);
+      }
     }
-
-    if (!working)
-      break;
-
-    int len = decimate();
-    count += len;
-    // And send the data to output block.
-    flow<T_in, T_out>::succ -> receive(decimated_buffer, len);
-
-    flow<T_in, T_out>::read_ready = false;
-    lock.unlock();
-  }
 }
 
-template <typename T_in, typename T_out>
-void decimator<T_in, T_out>::stop_worker() {
-  working = false;
-  this -> read_ready = true;
-  flow<T_in, T_out>::read_ready_cond.notify_one();
-}
 
 template <typename T_in, typename T_out>
 complex_decimator<T_in, T_out>::complex_decimator(int m_factor, double fc, int kernel_length)
@@ -71,13 +54,13 @@ complex_decimator<T_in, T_out>::complex_decimator(int m_factor, double fc, int k
     acc_q {0} {};
 
 template <typename T_in, typename T_out>
-int complex_decimator<T_in, T_out>::decimate() {
+int complex_decimator<T_in, T_out>::decimate(int len) {
   int i = 0, j = 0;
 
-  while (i + 2 * this -> kernel_length < flow<T_in, T_out>::buf_size) {
+  while (i + 2 * this -> kernel_length < len) {
     while (this -> window_cnt < this -> kernel_length) {
-      acc_i += flow<T_in, T_out>::input_buffer[i] * this -> kernel[this -> window_cnt];
-      acc_q += flow<T_in, T_out>::input_buffer[i + 1] * this -> kernel[this -> window_cnt];
+      acc_i += this -> input_buffer -> take(i) * this -> kernel[this -> window_cnt];
+      acc_q += this -> input_buffer -> take(i + 1) * this -> kernel[this -> window_cnt];
       this -> window_cnt++;
       i += 2;
     }
@@ -87,17 +70,8 @@ int complex_decimator<T_in, T_out>::decimate() {
     acc_i = acc_q = 0;
     this -> window_cnt = 0;
     i += 2 * (this -> m_factor - this -> kernel_length);
+    this -> input_buffer -> advance(2 * this -> m_factor);
     j += 2;
-  }
-
-  if (i < this -> buf_size) {
-    std::memcpy(
-        this -> input_buffer,
-        this -> input_buffer + i,
-        (this -> buf_size - i) * sizeof(T_in));
-    this -> offset = this -> buf_size - i;
-  } else {
-    this -> offset = 0;
   }
 
   return j;
@@ -109,12 +83,12 @@ real_decimator<T_in, T_out>::real_decimator(int m_factor, double fc, int kernel_
       acc {0} {};
 
 template <typename T_in, typename T_out>
-int real_decimator<T_in, T_out>::decimate() {
+int real_decimator<T_in, T_out>::decimate(int len) {
   int i = 0, j = 0;
 
-  while (i + this -> kernel_length < this -> buf_size) {
+  while (i + this -> kernel_length < len) {
     while (this -> window_cnt < this -> kernel_length) {
-      acc += this -> input_buffer[i] * this -> kernel[this -> window_cnt];
+      acc += this -> input_buffer -> take(i) * this -> kernel[this -> window_cnt];
       this -> window_cnt++;
       i++;
     }
@@ -123,17 +97,8 @@ int real_decimator<T_in, T_out>::decimate() {
     acc = 0;
     this -> window_cnt = 0;
     i += this -> m_factor - this -> kernel_length;
+    this -> input_buffer -> advance(this -> m_factor);
     j++;
-  }
-
-  if (i < this -> buf_size) {
-    std::memcpy(
-        this -> input_buffer,
-        this -> input_buffer + i,
-        (this -> buf_size - i) * sizeof(T_in));
-    this -> offset = this -> buf_size - i;
-  } else {
-    this -> offset = 0;
   }
 
   return j;

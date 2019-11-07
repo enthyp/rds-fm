@@ -18,19 +18,13 @@ class decimator : public flow<T_in, T_out> {
   int window_cnt;
   T_out decimated_buffer[MAXIMUM_BUFFER_LENGTH];
 
-  void process() override;
-  void stop_worker() override;
+  void process_buffer() override;
   std::atomic<bool> working;
   virtual int decimate() = 0;
 
  public:
   decimator(int m_factor, double fc, int kernel_length);
   std::string get_type() const override { return "complex_decimator"; }
-  void run() override
-  {
-    working = true;
-    flow<T_in, T_out>::worker_t = std::thread(&decimator::process, this);
-  }
 };
 
 template <class T_in, class T_out>
@@ -38,7 +32,7 @@ class complex_decimator : public decimator<T_in, T_out> {
  private:
   double acc_i;
   double acc_q;
-  int decimate() override;
+  int decimate(int len) override;
 
  public:
   complex_decimator(int m_factor, double fc, int kernel_length);
@@ -48,7 +42,7 @@ template <class T_in, class T_out>
 class real_decimator : public decimator<T_in, T_out> {
  private:
   double acc;
-  int decimate() override;
+  int decimate(int len) override;
 
  public:
   real_decimator(int m_factor, double fc, int kernel_length);

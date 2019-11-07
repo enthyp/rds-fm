@@ -1,35 +1,27 @@
+#include <cmath>
 #include "const.h"
 #include "flow/fm_demodulation.h"
 
 
 template <typename T_in, typename T_out>
-void fm_demodulator<T_in, T_out>::process() {
-  while (working) {
-    // Wait for data source the buffer.
-    std::unique_lock<std::mutex> lock(flow<T_in, T_out>::buf_lock);
-    if (!flow<T_in, T_out>::read_ready) {
-      flow<T_in, T_out>::read_ready_cond.wait(lock);
+void fm_demodulator<T_in, T_out>::process_buffer() {
+  int to_read = this -> input_buffer -> available_read();
+  if (to_read) {
+    int len = demodulate(to_read);
+    int to_write = this -> output_buffer -> available_write();
+    for (int i = 0; i < std::min(len, to_write); i++) {
+      this -> output_buffer -> push(demodulated_buffer[i]);
     }
-
-    if (!working)
-      break;
-
-    int len = demodulate();
-
-    // And send the data to output block.
-    flow<T_in, T_out>::succ -> receive(demodulated_buffer, len);
-
-    flow<T_in, T_out>::read_ready = false;
-    lock.unlock();
   }
 }
 
 template <typename T_in, typename T_out>
-int fm_demodulator<T_in, T_out>::demodulate() {
+int fm_demodulator<T_in, T_out>::demodulate(int len) {
   int i;
 
-  for (i = 0; i < flow<T_in, T_out>::buf_size; i += 2) {
-    double angle = atan2(flow<T_in, T_out>::input_buffer[i], flow<T_in, T_out>::input_buffer[i + 1]);
+  for (i = 0; i < len; i += 2) {
+    double angle = atan2(this -> input_buffer -> take(i), this -> input_buffer -> take(i + 1));
+    this -> input_buffer -> advance(2);
     double angle_diff = angle - prev_angle;
 
     // Unwrap phase.
@@ -38,30 +30,13 @@ int fm_demodulator<T_in, T_out>::demodulate() {
     else if (angle_diff < -PI)
       angle_diff = -2 * PI - angle_diff;
 
-    demodulated_buffer[i / 2] = convert(angle_diff);
+    demodulated_buffer[i / 2] = angle_diff;
     prev_angle = angle;
   }
 
   return int (i / 2);
 }
 
-template <typename T_in, typename T_out>
-void fm_demodulator<T_in, T_out>::stop_worker() {
-  working = false;
-  this -> read_ready = true;
-  flow<T_in, T_out>::read_ready_cond.notify_one();
-}
-
-
-template <>
-double convert_angle<double>::operator()(double angle) {
-  return angle;  // / 3.14159 * (1u<<15u);
-}
-
-template <>
-int16_t convert_angle<int16_t>::operator()(double angle) {
-  return (int16_t)(angle / 3.14159 * (1u<<15u));
-}
 
 // These are necessary to avoid linkage error.
 template class fm_demodulator<double, double>;

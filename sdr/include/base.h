@@ -26,7 +26,7 @@ class block {
 
 
 template <typename T>
-class producer : public block {
+class producer : virtual public block {
  protected:
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * output_buffer;
  public:
@@ -34,7 +34,7 @@ class producer : public block {
 };
 
 template <typename T>
-class consumer : public block {
+class consumer : virtual public block {
  protected:
   ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * input_buffer;
  public:
@@ -48,15 +48,16 @@ template <class T_in, class T_out>
 class flow : public producer<T_out>, public consumer<T_in> {
  protected:
   std::atomic_bool working;
-  virtual void process() = 0;
+  virtual void process_buffer() = 0;
   void stop_worker() override { working = false; }
-
-  void work() override {
+  void work() override
+  {
     while (working) {
-      process();
+      process_buffer();
     }
   };
 
+ public:
   void run() override
   {
     working = true;

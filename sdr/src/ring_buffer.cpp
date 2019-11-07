@@ -12,21 +12,17 @@ void ring_buffer<T, capacity>::push(T element)
 }
 
 template <class T, int capacity>
-T ring_buffer<T, capacity>::take()
+T ring_buffer<T, capacity>::take(int index)
 {
-  if (offset) {
-    T el = buffer[head];
-    head = (head + 1) % size;
-    offset--;
-    return el;
+  if (index >= 0 && index < offset) {
+    return buffer[head + index];
   } else {
-    throw buffer_empty_exception();
+    throw std::out_of_range("Illegal buffer access.");
   }
 }
 
 template <class T, int capacity>
 typename ring_buffer<T, capacity>::block ring_buffer<T, capacity>::take_block()
-  throw(buffer_empty_exception)
 {
   if (head + offset > size) {
     // We have 2 blocks to return (on both ends of the buffer).
@@ -37,4 +33,10 @@ typename ring_buffer<T, capacity>::block ring_buffer<T, capacity>::take_block()
   } else {
     throw buffer_empty_exception();
   }
+}
+
+template <class T, int capacity>
+void ring_buffer<T, capacity>::advance(int steps)
+{
+  head = (head + steps) % size;
 }

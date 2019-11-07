@@ -34,7 +34,7 @@ class ring_buffer {
   int available_read() { return offset; }
 
   void push(T element);
-  T take();
+  T take(int index) noexcept (false);
 
   struct block {
     T * start_index;
@@ -42,6 +42,8 @@ class ring_buffer {
   };
 
   block take_block() noexcept (false);
+
+  void advance(int steps);
 };
 
 // TODO: how to balance reads and writes?

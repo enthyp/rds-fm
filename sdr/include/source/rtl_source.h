@@ -17,13 +17,13 @@ class rtl_source : public source {
 
   void work() override;
   void stop_worker() override;
-  void stop() override;
 
   friend void rtlsdr_callback(unsigned char *buf, uint32_t len, void *ctx);
 
  public:
   rtl_source(uint32_t dev_index, int freq, int sampling_rate);
   std::string get_type() const override { return "rtl_source"; }
+  void stop() override;
 };
 
 #endif  /* IN_RTL_SOURCE_H */
