@@ -36,17 +36,19 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
 
 template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::process_buffer() {
+  int len;
+  {
+    auto lock = this -> input_buffer -> read_lock();
     int to_read = this -> input_buffer -> available_read();
-    if (to_read) {
-      int len = decimate(to_read);
+    len = decimate(to_read);
+  }
 
-      int to_write = this -> output_buffer -> available_write();
-      for (int i = 0; i < std::min(len, to_write); i++) {
-        this -> output_buffer -> push(decimated_buffer[i]);
-      }
-    }
+  auto lock = this -> output_buffer -> write_lock();
+  int to_write = this -> output_buffer -> available_write();
+  for (int i = 0; i < std::min(len, to_write); i++) {
+    this -> output_buffer -> push(decimated_buffer[i]);
+  }
 }
-
 
 template <typename T_in, typename T_out>
 complex_decimator<T_in, T_out>::complex_decimator(int m_factor, double fc, int kernel_length)

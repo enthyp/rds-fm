@@ -1,8 +1,5 @@
 #include <iostream>
-#include <mutex>
-
 #include "sink/file_sink.h"
-#include "ring_buffer.h"
 
 
 template <typename T>
@@ -20,14 +17,13 @@ file_sink<T>::file_sink(std::string & filename)
 
 template <typename T>
 void file_sink<T>::worker() {
+  int i = 0;
   while (working) {
-    try {
-      typename ring_buffer<T, MAXIMUM_BUFFER_LENGTH>::block b = consumer<T>::input_buffer -> take_block();
-      (*target).write(reinterpret_cast<const char *>(b.start_index), b.length * sizeof(T));
-      consumer<T>::input_buffer -> advance(b.length);
-    } catch(buffer_empty_exception & e) {
-      // Do nothing, a busy loop for now.
-    }
+    auto lock = this -> input_buffer -> read_lock();
+    auto b = this -> input_buffer -> take_block();
+
+    (*target).write(reinterpret_cast<const char *>(b.start_index), b.length * sizeof(T));
+    consumer<T>::input_buffer -> advance(b.length);
   }
 }
 

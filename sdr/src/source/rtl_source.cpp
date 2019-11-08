@@ -1,8 +1,5 @@
 #include <iostream>
-#include <memory>
-#include <thread>
-#include <cstddef>
-#include <cstring>
+#include <algorithm>
 
 #include "rtl-sdr.h"
 
@@ -43,15 +40,12 @@ void rtl_source::stop() {
   }
 }
 
-
-// TODO: maybe consumer should pull data from producer?
-// Now producer does not wait for the consumer (might overwrite o.O)
 extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
   auto source = (rtl_source*) ctx;
+  source -> output_buffer -> write_lock();
 
-  if (len <= source -> output_buffer -> available_write()) {
-    for (int i = 0; i < (int)len; i++) {
-      source -> output_buffer -> push((int16_t)buf[i] - 127);
-    }
-  }  // ...else drop it all.
+  int available = source -> output_buffer -> available_write();
+  for (int i = 0; i < std::min((int)len, available); i++) {
+    source -> output_buffer -> push((int16_t)buf[i] - 127);
+  }
 }

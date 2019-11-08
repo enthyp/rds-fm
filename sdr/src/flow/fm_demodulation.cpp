@@ -5,13 +5,17 @@
 
 template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process_buffer() {
-  int to_read = this -> input_buffer -> available_read();
-  if (to_read) {
-    int len = demodulate(to_read);
-    int to_write = this -> output_buffer -> available_write();
-    for (int i = 0; i < std::min(len, to_write); i++) {
-      this -> output_buffer -> push(demodulated_buffer[i]);
-    }
+  int len;
+  {
+    auto lock = this -> input_buffer -> read_lock();
+    int to_read = this -> input_buffer -> available_read();
+    len = demodulate(to_read);
+  }
+
+  auto lock = this -> output_buffer -> write_lock();
+  int to_write = this -> output_buffer -> available_write();
+  for (int i = 0; i < std::min(len, to_write); i++) {
+    this -> output_buffer -> push(demodulated_buffer[i]);
   }
 }
 
