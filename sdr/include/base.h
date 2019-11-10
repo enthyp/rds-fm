@@ -27,17 +27,17 @@ class block {
 template <typename T>
 class producer : virtual public block {
  protected:
-  ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * output_buffer;
+  ring_buffer<T> * output_buffer;
  public:
-  void to(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { output_buffer = &buffer; }
+  void to(ring_buffer<T> & buffer) { output_buffer = &buffer; }
 };
 
 template <typename T>
 class consumer : virtual public block {
  protected:
-  ring_buffer<T, MAXIMUM_BUFFER_LENGTH> * input_buffer;
+  ring_buffer<T> * input_buffer;
  public:
-  void from(ring_buffer<T, MAXIMUM_BUFFER_LENGTH> & buffer) { input_buffer = &buffer; }
+  void from(ring_buffer<T> & buffer) { input_buffer = &buffer; }
 };
 
 // By convention, RTL-SDR produces int16_t and so shall any other source.

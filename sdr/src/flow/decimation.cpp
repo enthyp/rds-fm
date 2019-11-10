@@ -38,15 +38,15 @@ template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::process_buffer() {
   int len;
   {
-    auto lock = this -> input_buffer -> read_lock();
-    int to_read = this -> input_buffer -> available_read();
+    auto lock = this->input_buffer->read_lock();
+    int to_read = this->input_buffer->available_read();
     len = decimate(to_read);
   }
 
-  auto lock = this -> output_buffer -> write_lock();
-  int to_write = this -> output_buffer -> available_write();
+  auto lock = this->output_buffer->write_lock();
+  int to_write = this->output_buffer->available_write();
   for (int i = 0; i < std::min(len, to_write); i++) {
-    this -> output_buffer -> push(decimated_buffer[i]);
+    this->output_buffer->push(decimated_buffer[i]);
   }
 }
 
@@ -58,25 +58,28 @@ complex_decimator<T_in, T_out>::complex_decimator(int m_factor, double fc, int k
 
 template <typename T_in, typename T_out>
 int complex_decimator<T_in, T_out>::decimate(int len) {
-  int i = 0, j = 0;
+  int i = 0;
 
-  while (i + 2 * this -> kernel_length < len) {
-    while (this -> window_cnt < this -> kernel_length) {
-      acc_i += this -> input_buffer -> take(i) * this -> kernel[this -> window_cnt];
-      acc_q += this -> input_buffer -> take(i + 1) * this -> kernel[this -> window_cnt];
-      this -> window_cnt++;
-      i += 2;
+  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this -> window_cnt + 1) {
+    while (
+        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this -> window_cnt + 1
+        && this->window_cnt < 2 * this->kernel_length) {
+      acc_i += this->input_buffer->take(this->window_cnt) * this->kernel[this->window_cnt / 2];
+      acc_q += this->input_buffer->take(this->window_cnt + 1) * this->kernel[this->window_cnt / 2];
+      this->window_cnt += 2;
     }
 
-    this -> decimated_buffer[j] = (T_out)acc_i;
-    this -> decimated_buffer[j + 1] = (T_out)acc_q;
-    this -> window_cnt = acc_i = acc_q = 0;
-    i += 2 * (this -> m_factor - this -> kernel_length);
-    this -> input_buffer -> advance(2 * this -> m_factor);
-    j += 2;
+    if (this->window_cnt == this->kernel_length * 2) {
+      this->decimated_buffer[i] = (T_out) acc_i;
+      this->decimated_buffer[i + 1] = (T_out) acc_q;
+      this->window_cnt = acc_i = acc_q = 0;
+      this->input_buffer->move_read_index(2 * this->m_factor);
+      i += 2;
+    }
   }
 
-  return j;
+  this->input_buffer->advance_head();
+  return i;
 };
 
 template <typename T_in, typename T_out>
@@ -86,23 +89,26 @@ real_decimator<T_in, T_out>::real_decimator(int m_factor, double fc, int kernel_
 
 template <typename T_in, typename T_out>
 int real_decimator<T_in, T_out>::decimate(int len) {
-  int i = 0, j = 0;
+  int i = 0;
 
-  while (i + this -> kernel_length < len) {
-    while (this -> window_cnt < this -> kernel_length) {
-      acc += this -> input_buffer -> take(i) * this -> kernel[this -> window_cnt];
-      this -> window_cnt++;
-      i++;
+  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > 1) {
+    while (
+        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > 1
+            && this->window_cnt < this->kernel_length) {
+      acc += this->input_buffer->take(this->window_cnt) * this->kernel[this->window_cnt];
+      this->window_cnt++;
     }
 
-    this -> decimated_buffer[j] = (T_out)acc;
-    this -> window_cnt = acc = 0;
-    i += this -> m_factor - this -> kernel_length;
-    this -> input_buffer -> advance(this -> m_factor);
-    j++;
+    if (this->window_cnt == this->kernel_length) {
+      this->decimated_buffer[i] = (T_out) acc;
+      this->window_cnt = acc = 0;
+      i++;
+      this->input_buffer->move_read_index(this->m_factor);
+    }
   }
 
-  return j;
+  this->input_buffer->advance_head();
+  return i;
 };
 
 // These are necessary to avoid linkage error.

@@ -42,10 +42,10 @@ void rtl_source::stop() {
 
 extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
   auto source = (rtl_source*) ctx;
-  source -> output_buffer -> write_lock();
+  source->output_buffer->write_lock();
 
-  int available = source -> output_buffer -> available_write();
+  int available = source->output_buffer->available_write();
   for (int i = 0; i < std::min((int)len, available); i++) {
-    source -> output_buffer -> push((int16_t)buf[i] - 127);
+    source->output_buffer->push((int16_t)buf[i] - 127);
   }
 }

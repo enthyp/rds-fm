@@ -7,15 +7,15 @@ template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process_buffer() {
   int len;
   {
-    auto lock = this -> input_buffer -> read_lock();
-    int to_read = this -> input_buffer -> available_read();
+    auto lock = this->input_buffer->read_lock();
+    int to_read = this->input_buffer->available_read();
     len = demodulate(to_read);
   }
 
-  auto lock = this -> output_buffer -> write_lock();
-  int to_write = this -> output_buffer -> available_write();
+  auto lock = this->output_buffer->write_lock();
+  int to_write = this->output_buffer->available_write();
   for (int i = 0; i < std::min(len, to_write); i++) {
-    this -> output_buffer -> push(demodulated_buffer[i]);
+    this->output_buffer->push(demodulated_buffer[i]);
   }
 }
 
@@ -24,8 +24,9 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
   int i;
 
   for (i = 0; i < len; i += 2) {
-    double angle = atan2(this -> input_buffer -> take(i), this -> input_buffer -> take(i + 1));
-    this -> input_buffer -> advance(2);
+    double angle = atan2(this->input_buffer->take(i), this->input_buffer->take(i + 1));
+    this->input_buffer->move_read_index(2);
+    this->input_buffer->advance_head();
     double angle_diff = angle - prev_angle;
 
     // Unwrap phase.

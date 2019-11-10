@@ -19,7 +19,6 @@ class decimator : public flow<T_in, T_out> {
   T_out decimated_buffer[MAXIMUM_BUFFER_LENGTH];
 
   void process_buffer() override;
-  std::atomic<bool> working;
   virtual int decimate(int len) = 0;
 
  public:

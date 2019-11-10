@@ -5,6 +5,8 @@
 #include <mutex>
 #include <stdexcept>
 #include <condition_variable>
+#include "const.h"
+
 
 class buffer_full_exception : public std::runtime_error {
  public:
@@ -19,29 +21,38 @@ class buffer_empty_exception : public std::runtime_error {
 };
 
 
-template <class T, int capacity>
+template <class T>
 class ring_buffer {
  private:
   std::mutex m;
   bool read_c, write_c;
   std::condition_variable read_v, write_v;
 
-  int head, tail, size;
+  bool empty;
+  int head, tail, read_offset, size;
   std::vector<T> buffer;
 
  public:
   ring_buffer()
-    : buffer (capacity + 1, 0),     // 1 cell to separate head and tail
+    : buffer (MAXIMUM_BUFFER_LENGTH, 0),
       head {0},
       tail {0},
-      size {capacity + 1},
+      read_offset {0},
+      empty {true},
+      size {MAXIMUM_BUFFER_LENGTH},
       read_c {false},
       write_c {true} {};
 
+  int get_size();
+  int get_read_offset();
+
+  /* Buffer access synchronization */
+
   class signal_lock {
-    // Lock tied to a pair of condition variables.
-    // When constructed, condition is met and a lock is owned.
-    // Once destructed, lock is released and final condition var is notified.
+    /* Lock tied to a pair of condition variables.
+       Once constructed, we know condition is met and a lock is owned.
+       Once destructed, we know lock was released and final condition var was notified.
+    */
    private:
     std::unique_lock<std::mutex> lck;
     std::condition_variable & init_cond, & final_cond;
@@ -61,18 +72,22 @@ class ring_buffer {
   signal_lock read_lock();
   signal_lock write_lock();
 
-  int available_write();
-  int available_read();
-  void push(T element) noexcept (false);
-  T take(int index) noexcept (false);
+
+  /* Buffer data access */
 
   struct block {
     T * start_index;
     int length;
   };
 
+  int available_read();
+  void move_read_index(int offset);
+  void advance_head();
+  T take(int offset) noexcept (false);
   block take_block() noexcept (false);
-  void advance(int steps) noexcept (false);
+
+  int available_write();
+  void push(T element) noexcept (false);
 };
 
 // TODO: how to balance reads and writes?

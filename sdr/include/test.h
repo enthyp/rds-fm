@@ -11,13 +11,13 @@
 class fm_receiver {
  private:
   rtl_source input;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
+  ring_buffer<int16_t> med1;
   complex_decimator<int16_t, double> decimator;
-  ring_buffer<double, MAXIMUM_BUFFER_LENGTH> med2;
+  ring_buffer<double> med2;
   fm_demodulator<double, int16_t> demodulator;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med3;
+  ring_buffer<int16_t> med3;
   real_decimator<int16_t , int16_t> decimator2;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med4;
+  ring_buffer<int16_t> med4;
   file_sink<int16_t> output;
 
  public:
@@ -46,11 +46,11 @@ class demod_writer {
  private:
   //rtl_source input;
   file_source input;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
+  ring_buffer<int16_t> med1;
   complex_decimator<int16_t, T> decimator;
-  ring_buffer<T, MAXIMUM_BUFFER_LENGTH> med2;
+  ring_buffer<T> med2;
   fm_demodulator<T, int16_t> demodulator;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med3;
+  ring_buffer<int16_t> med3;
   file_sink<int16_t> output;
 
  public:
@@ -78,9 +78,9 @@ class decim_writer {
  private:
   //rtl_source input;
   file_source input;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med1;
+  ring_buffer<int16_t> med1;
   complex_decimator<int16_t, T> decimator;
-  ring_buffer<T, MAXIMUM_BUFFER_LENGTH> med2;
+  ring_buffer<T> med2;
   file_sink<T> output;
 
 public:
@@ -105,7 +105,7 @@ class iq_writer {
  private:
   //rtl_source input;
   file_source input;
-  ring_buffer<int16_t, MAXIMUM_BUFFER_LENGTH> med;
+  ring_buffer<int16_t> med;
   file_sink<int16_t> output;
 
   public:
