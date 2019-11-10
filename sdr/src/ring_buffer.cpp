@@ -51,34 +51,18 @@ int ring_buffer<T>::get_read_offset() {
   return read_offset;
 }
 
-//template <class T>
-//typename ring_buffer<T>::signal_lock ring_buffer<T>::read_lock()
-//{
-//  ring_buffer<T>::signal_lock l(m, read_v, read_c, write_v, write_c);
-//  return l;
-//}
-//
-//template <class T>
-//typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
-//{
-//  ring_buffer<T>::signal_lock l(m, write_v, write_c, read_v, read_c);
-//  return l;
-//}
-
-
 template <class T>
-void ring_buffer<T>::read_release() {
-  write_c = true;
-  write_v.notify_one();
-  read_c = false;
+typename ring_buffer<T>::signal_lock ring_buffer<T>::read_lock()
+{
+  ring_buffer<T>::signal_lock l(m, read_v, read_c, write_v, write_c);
+  return l;
 }
 
-
 template <class T>
-void ring_buffer<T>::write_release() {
-  read_c = true;
-  read_v.notify_one();
-  write_c = false;
+typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
+{
+  ring_buffer<T>::signal_lock l(m, write_v, write_c, read_v, read_c);
+  return l;
 }
 
 template <class T>

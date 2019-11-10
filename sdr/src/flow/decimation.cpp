@@ -38,20 +38,16 @@ template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::process_buffer() {
   int len;
   {
-    std::unique_lock<std::mutex> lock(this->input_buffer->m);
-    this->input_buffer->read_v.wait(lock, [this] { return this->input_buffer->read_c; });
+    auto lock = this->input_buffer->read_lock();
     int to_read = this->input_buffer->available_read();
     len = decimate(to_read);
-    this->input_buffer->read_release();
   }
 
-  std::unique_lock<std::mutex> lock(this->output_buffer->m);
-  this->output_buffer->write_v.wait(lock, [this] { return this->output_buffer->write_c; });
+  auto lock = this->output_buffer->write_lock();
   int to_write = this->output_buffer->available_write();
   for (int i = 0; i < std::min(len, to_write); i++) {
     this->output_buffer->push(decimated_buffer[i]);
   }
-  this->output_buffer->write_release();
 }
 
 template <typename T_in, typename T_out>

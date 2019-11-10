@@ -5,8 +5,7 @@
 
 void file_source::worker() {
   while (working && source_file.read(reinterpret_cast<char *>(im_buffer), DEFAULT_BUFFER_LENGTH * sizeof(int16_t))) {
-    std::unique_lock<std::mutex> lock(this->output_buffer->m);
-    this->output_buffer->write_v.wait(lock, [this] { return this->output_buffer->write_c; });
+    auto lock = output_buffer->write_lock();
 
     unsigned long available = output_buffer->available_write();
     unsigned long count = source_file.gcount() / sizeof(int16_t);
@@ -14,7 +13,6 @@ void file_source::worker() {
     for (unsigned long i = 0; i < std::min(count, available); i++) {
       output_buffer->push(im_buffer[i]);
     }
-    this->output_buffer->write_release();
   }
 
   std::cerr << "Done! " << std::endl;
