@@ -7,16 +7,20 @@ template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process_buffer() {
   int len;
   {
-    auto lock = this->input_buffer->read_lock();
+    std::unique_lock<std::mutex> lock(this->input_buffer->m);
+    this->input_buffer->read_v.wait(lock, [this] { return this->input_buffer->read_c; });
     int to_read = this->input_buffer->available_read();
     len = demodulate(to_read);
+    this->input_buffer->read_release();
   }
 
-  auto lock = this->output_buffer->write_lock();
+  std::unique_lock<std::mutex> lock(this->output_buffer->m);
+  this->output_buffer->write_v.wait(lock, [this] { return this->output_buffer->write_c; });
   int to_write = this->output_buffer->available_write();
   for (int i = 0; i < std::min(len, to_write); i++) {
     this->output_buffer->push(demodulated_buffer[i]);
   }
+  this->output_buffer->write_release();
 }
 
 template <typename T_in, typename T_out>

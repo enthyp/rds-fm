@@ -24,15 +24,15 @@ class buffer_empty_exception : public std::runtime_error {
 template <class T>
 class ring_buffer {
  private:
-  std::mutex m;
-  bool read_c, write_c;
-  std::condition_variable read_v, write_v;
-
   bool empty;
   int head, tail, read_offset, size;
   std::vector<T> buffer;
 
  public:
+  std::mutex m;
+  bool read_c, write_c;
+  std::condition_variable read_v, write_v;
+
   ring_buffer()
     : buffer (MAXIMUM_BUFFER_LENGTH, 0),
       head {0},
@@ -69,8 +69,10 @@ class ring_buffer {
     signal_lock(signal_lock && lock);
   };
 
-  signal_lock read_lock();
-  signal_lock write_lock();
+  void read_release();
+  void write_release();
+  //signal_lock read_lock();
+  //signal_lock write_lock();
 
 
   /* Buffer data access */
