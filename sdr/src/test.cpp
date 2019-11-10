@@ -4,6 +4,7 @@
 void fm_receiver::run()
 {
   output.run();
+  decimator2.run();
   demodulator.run();
   decimator.run();
   input.run();
@@ -16,6 +17,7 @@ void fm_receiver::stop()
   input.stop();
   decimator.stop();
   demodulator.stop();
+  decimator2.stop();
   output.stop();
 
   std::cerr << "Stopped." << std::endl;

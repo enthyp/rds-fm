@@ -25,8 +25,6 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
 
   for (i = 0; i < len; i += 2) {
     double angle = atan2(this->input_buffer->take(i), this->input_buffer->take(i + 1));
-    this->input_buffer->move_read_index(2);
-    this->input_buffer->advance_head();
     double angle_diff = angle - prev_angle;
 
     // Unwrap phase.
@@ -38,6 +36,8 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
     demodulated_buffer[i / 2] = angle_diff / PI * (1u << 15u);
     prev_angle = angle;
   }
+  this->input_buffer->move_read_index(2 * len);
+  this->input_buffer->advance_head();
 
   return int (i / 2);
 }

@@ -60,9 +60,9 @@ template <typename T_in, typename T_out>
 int complex_decimator<T_in, T_out>::decimate(int len) {
   int i = 0;
 
-  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this -> window_cnt + 1) {
+  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this->window_cnt + 1) {
     while (
-        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this -> window_cnt + 1
+        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this->window_cnt + 1
         && this->window_cnt < 2 * this->kernel_length) {
       acc_i += this->input_buffer->take(this->window_cnt) * this->kernel[this->window_cnt / 2];
       acc_q += this->input_buffer->take(this->window_cnt + 1) * this->kernel[this->window_cnt / 2];
@@ -91,9 +91,9 @@ template <typename T_in, typename T_out>
 int real_decimator<T_in, T_out>::decimate(int len) {
   int i = 0;
 
-  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > 1) {
+  while (this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this->window_cnt + 1) {
     while (
-        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > 1
+        this->input_buffer->available_read() - this->input_buffer->get_read_offset() > this->window_cnt + 1
             && this->window_cnt < this->kernel_length) {
       acc += this->input_buffer->take(this->window_cnt) * this->kernel[this->window_cnt];
       this->window_cnt++;

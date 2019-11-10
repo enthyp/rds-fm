@@ -55,8 +55,6 @@ template <class T>
 typename ring_buffer<T>::signal_lock ring_buffer<T>::read_lock()
 {
   ring_buffer<T>::signal_lock l(m, read_v, read_c, write_v, write_c);
-  //std::cerr << "read obt" << std::endl;
-
   return l;
 }
 
@@ -64,8 +62,6 @@ template <class T>
 typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
 {
   ring_buffer<T>::signal_lock l(m, write_v, write_c, read_v, read_c);
-  //std::cerr << "write obt" << std::endl;
-
   return l;
 }
 
@@ -90,7 +86,6 @@ int ring_buffer<T>::available_read()
 template <class T>
 void ring_buffer<T>::move_read_index(int offset) {
   read_offset += offset;
-  //std::cerr << "moved to " << read_offset << std::endl;
 }
 
 /* Moves head forward to where read index currently is. No other movements of
@@ -107,7 +102,6 @@ void ring_buffer<T>::advance_head() {
   }
 
   read_offset = 0;
-  //std::cerr << "advanced " << head << " " << tail << std::endl;
 }
 
 /* Returns element at read index + offset (it it's in the buffer).
@@ -116,10 +110,6 @@ void ring_buffer<T>::advance_head() {
 template <class T>
 T ring_buffer<T>::take(int offset)
 {
-  if (read_offset + offset >= available_read() ) {
-    throw std::out_of_range("Illegal take index!");
-  }
-
   return buffer[(head + read_offset + offset) % size];
 }
 
@@ -127,11 +117,6 @@ T ring_buffer<T>::take(int offset)
 template <class T>
 typename ring_buffer<T>::block ring_buffer<T>::take_block()
 {
-  if (read_offset >= available_read()) {
-    std::cerr << read_offset << " " << available_read() << std::endl;
-    throw std::out_of_range("Illegal take index!");
-  }
-
   if ((head + read_offset) % size < tail) {
     return { &buffer[(head + read_offset) % size], tail - head - read_offset };
   } else {
@@ -148,10 +133,6 @@ int ring_buffer<T>::available_write()
 template <class T>
 void ring_buffer<T>::push(T element)
 {
-  if (!empty && head == tail) {
-    throw buffer_full_exception();
-  }
-
   buffer[tail] = element;
   tail = (tail + 1) % size;
   empty = false;
