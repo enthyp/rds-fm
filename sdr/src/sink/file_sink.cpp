@@ -24,10 +24,8 @@ void file_sink<T>::worker() {
     auto b = this->input_buffer->take_block();
 
     (*target).write(reinterpret_cast<const char *>(b.start_index), b.length * sizeof(T));
-    this->input_buffer->move_read_index(b.length);
-    this->input_buffer->advance_head();
+    this->input_buffer->advance_head(b.length);
     this->input_buffer->read_release();
-    //std::cerr << "read " << b.length << " at " << this->input_buffer->get_read_offset() << std::endl;
   }
 }
 

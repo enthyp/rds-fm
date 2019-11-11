@@ -22,29 +22,34 @@ class buffer_empty_exception : public std::runtime_error {
 
 
 template <class T>
+struct mem_block {
+  T * start_index;
+  uint32_t length;
+};
+
+
+template <class T>
 class ring_buffer {
  private:
   bool read_c;
   std::condition_variable read_v;
 
-  bool empty;
-  int head, tail, read_offset, size;
+  uint32_t head, tail, size, s_mask, b_mask;
   std::vector<T> buffer;
 
  public:
   std::mutex m;
 
   ring_buffer()
-    : buffer (MAXIMUM_BUFFER_LENGTH, 0),
+    : buffer (2 * MAXIMUM_BUFFER_LENGTH, 0),
       head {0},
       tail {0},
-      read_offset {0},
-      empty {true},
+      s_mask {MAXIMUM_BUFFER_LENGTH - 1},
+      b_mask {2 * MAXIMUM_BUFFER_LENGTH - 1},
       size {MAXIMUM_BUFFER_LENGTH},
       read_c {false} {};
 
   int get_size();
-  int get_read_offset();
 
   /* Buffer access synchronization */
 
@@ -69,19 +74,13 @@ class ring_buffer {
 
 
   /* Buffer data access */
-
-  struct block {
-    T * start_index;
-    int length;
-  };
-
   int available_read();
-  void move_read_index(int offset);
-  void advance_head();
+  void advance_head(int offset);
   T take(int offset) noexcept (false);
-  block take_block() noexcept (false);
+  mem_block<T> take_block() noexcept (false);
 
   int available_write();
+  void push_block(mem_block<T> & block) noexcept (false);
   void push(T element) noexcept (false);
 };
 

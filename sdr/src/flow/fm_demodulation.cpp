@@ -5,7 +5,7 @@
 
 template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process_buffer() {
-  int len;
+  uint32_t len;
   {
     std::unique_lock<std::mutex> l(this->input_buffer->m);
     this->input_buffer->read_lock(l);
@@ -15,14 +15,12 @@ void fm_demodulator<T_in, T_out>::process_buffer() {
   }
 
   auto lock = this->output_buffer->write_lock();
-  int to_write = this->output_buffer->available_write();
-  for (int i = 0; i < std::min(len, to_write); i++) {
-    this->output_buffer->push(demodulated_buffer[i]);
-  }
+  mem_block<T_out> b = {demodulated_buffer, len };
+  this->output_buffer->push_block(b);
 }
 
 template <typename T_in, typename T_out>
-int fm_demodulator<T_in, T_out>::demodulate(int len) {
+uint32_t fm_demodulator<T_in, T_out>::demodulate(int len) {
   int i;
 
   for (i = 0; i < len; i += 2) {
@@ -38,8 +36,7 @@ int fm_demodulator<T_in, T_out>::demodulate(int len) {
     demodulated_buffer[i / 2] = angle_diff / PI * (1u << 15u);
     prev_angle = angle;
   }
-  this->input_buffer->move_read_index(2 * len);
-  this->input_buffer->advance_head();
+  this->input_buffer->advance_head(len);
 
   return int (i / 2);
 }

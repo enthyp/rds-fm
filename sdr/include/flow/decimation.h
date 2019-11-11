@@ -19,7 +19,7 @@ class decimator : public flow<T_in, T_out> {
   T_out decimated_buffer[MAXIMUM_BUFFER_LENGTH];
 
   void process_buffer() override;
-  virtual int decimate(int len) = 0;
+  virtual uint32_t decimate(int len) = 0;
 
  public:
   decimator(int m_factor, double fc, int kernel_length);
@@ -30,7 +30,7 @@ class complex_decimator : public decimator<T_in, T_out> {
  private:
   double acc_i;
   double acc_q;
-  int decimate(int len) override;
+  uint32_t decimate(int len) override;
 
  public:
   complex_decimator(int m_factor, double fc, int kernel_length);
@@ -40,7 +40,7 @@ template <class T_in, class T_out>
 class real_decimator : public decimator<T_in, T_out> {
  private:
   double acc;
-  int decimate(int len) override;
+  uint32_t decimate(int len) override;
 
  public:
   real_decimator(int m_factor, double fc, int kernel_length);

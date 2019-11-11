@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <cstring>
 #include "ring_buffer.h"
 
 
@@ -18,6 +19,7 @@ ring_buffer<T>::signal_lock::signal_lock(
 template <class T>
 ring_buffer<T>::signal_lock::~signal_lock() {
   final_flag = true;
+  lck.unlock();
   final_cond.notify_all();
 }
 
@@ -32,14 +34,6 @@ ring_buffer<T>::signal_lock::signal_lock(ring_buffer<T>::signal_lock && other)
 
 template <class T>
 int ring_buffer<T>::get_size() { return size; }
-
-/* Returns read index offset relative to head position. It is always non-negative and might formally
- * surpass tail (think decimation filters).
- */
-template <class T>
-int ring_buffer<T>::get_read_offset() {
-  return read_offset;
-}
 
 template <class T>
 void ring_buffer<T>::read_lock(std::unique_lock<std::mutex> & lock)
@@ -60,62 +54,40 @@ typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
   return l;
 }
 
+/*
+ * Bit magic picked up from https://github.com/JvanKatwijk/sdr-j-fm RingBuffer implementation.
+ */
 template <class T>
 int ring_buffer<T>::available_read()
 {
-  if (head < tail) {
-    return tail - head;
-  }
-  if (empty) {
-    return 0;
-  } else {
-    return size - (head - tail);
-  }
+  return (tail - head) & s_mask;
 }
 
-/* Advances read index of the buffer - it might surpass tail of the buffer
- * and reads become unavailable until tail in turn surpasses read index.
- * Should only be called with non-negative offsets or undefined messy behaviour
- * will occur.
+/* Moves head forward. offset should not be greater than available_read()!
+ * TODO: check it!
  */
 template <class T>
-void ring_buffer<T>::move_read_index(int offset) {
-  read_offset += offset;
+void ring_buffer<T>::advance_head(int offset) {
+  head = (head + offset) & b_mask;
 }
 
-/* Moves head forward to where read index currently is. No other movements of
- * buffer head are allowed.
- */
-template <class T>
-void ring_buffer<T>::advance_head() {
-  int av_read = available_read();
-  head = (head + read_offset) % size;
-
-  if (read_offset >= av_read) {
-    tail = head;
-    empty = true;
-  }
-
-  read_offset = 0;
-}
-
-/* Returns element at read index + offset (if it's in the buffer).
- * Offset should be non-negative.
+/* Returns element at given offset from head (should be in the buffer).
+ * TODO: check it!
  */
 template <class T>
 T ring_buffer<T>::take(int offset)
 {
-  return buffer[(head + read_offset + offset) % size];
+  return buffer[(head + offset) & b_mask];
 }
 
 
 template <class T>
-typename ring_buffer<T>::block ring_buffer<T>::take_block()
+mem_block<T> ring_buffer<T>::take_block()
 {
-  if ((head + read_offset) % size < tail) {
-    return { &buffer[(head + read_offset) % size], tail - head - read_offset };
+  if (head <= tail) {
+    return { &buffer[head], tail - head };
   } else {
-    return { &buffer[(head + read_offset) % size], size - head - read_offset};
+    return { &buffer[head], 2 * size - head };
   }
 }
 
@@ -125,12 +97,34 @@ int ring_buffer<T>::available_write()
   return size - available_read();
 }
 
+
+/* TODO: check if no overwrite!
+ *
+ */
 template <class T>
-void ring_buffer<T>::push(T element)
+void ring_buffer<T>::push_block(mem_block<T> & block)
 {
+  uint32_t till_end = 2 * size - tail;
+  uint32_t to_write = block.length;
+  uint32_t available = available_write();
+  block.length = (to_write > available) ? available : to_write;
+
+  if (to_write > till_end) {
+    std::memcpy(&this->buffer[tail], block.start_index, till_end * sizeof(T));
+    std::memcpy(&this->buffer[0], block.start_index + till_end, (to_write - till_end) * sizeof(T));
+  } else {
+    std::memcpy(&this->buffer[tail], block.start_index, to_write * sizeof(T));
+  }
+  tail = (tail + to_write) & b_mask;
+}
+
+/* TODO: check if no overwrite!
+ *
+ */
+template <class T>
+void ring_buffer<T>::push(T element) {
   buffer[tail] = element;
-  tail = (tail + 1) % size;
-  empty = false;
+  tail = (tail + 1) & b_mask;
 }
 
 // These are necessary to avoid linkage error.

@@ -15,7 +15,7 @@ class fm_demodulator : public flow<T_in, T_out> {
   T_out demodulated_buffer[MAXIMUM_BUFFER_LENGTH];
 
   void process_buffer() override;
-  int demodulate(int len);
+  uint32_t demodulate(int len);
 
  public:
   fm_demodulator()
