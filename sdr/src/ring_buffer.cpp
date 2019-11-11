@@ -3,56 +3,7 @@
 #include <cstring>
 #include "ring_buffer.h"
 
-
-/* signal_lock */
-
-template <class T>
-ring_buffer<T>::signal_lock::signal_lock(
-    std::mutex & m,
-    std::condition_variable & final_cond,
-    bool & final_flag)
-    : lck (m),
-      final_cond {final_cond},
-      final_flag {final_flag} {};
-
-
-template <class T>
-ring_buffer<T>::signal_lock::~signal_lock() {
-  final_flag = true;
-  lck.unlock();
-  final_cond.notify_all();
-}
-
-template<class T>
-ring_buffer<T>::signal_lock::signal_lock(ring_buffer<T>::signal_lock && other)
-  : lck(std::move(other.lck)),
-    final_cond {other.final_cond},
-    final_flag {other.final_flag} {};
-
-
 /* ring_buffer */
-
-template <class T>
-int ring_buffer<T>::get_size() { return size; }
-
-template <class T>
-void ring_buffer<T>::read_lock(std::unique_lock<std::mutex> & lock)
-{
-  read_v.wait(lock, [this] { return read_c; });
-}
-
-template <class T>
-void ring_buffer<T>::read_release()
-{
-  read_c = false;
-}
-
-template <class T>
-typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
-{
-  ring_buffer<T>::signal_lock l(m, read_v, read_c);
-  return l;
-}
 
 /*
  * Bit magic picked up from https://github.com/JvanKatwijk/sdr-j-fm RingBuffer implementation.

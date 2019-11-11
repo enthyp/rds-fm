@@ -31,14 +31,13 @@ struct mem_block {
 template <class T>
 class ring_buffer {
  private:
-  bool read_c;
-  std::condition_variable read_v;
-
   uint32_t head, tail, size, s_mask, b_mask;
   std::vector<T> buffer;
 
  public:
   std::mutex m;
+  std::condition_variable read_v;
+  bool read_c;
 
   ring_buffer()
     : buffer (2 * MAXIMUM_BUFFER_LENGTH, 0),
@@ -48,30 +47,6 @@ class ring_buffer {
       b_mask {2 * MAXIMUM_BUFFER_LENGTH - 1},
       size {MAXIMUM_BUFFER_LENGTH},
       read_c {false} {};
-
-  int get_size();
-
-  /* Buffer access synchronization */
-
-  class signal_lock {
-   private:
-    std::unique_lock<std::mutex> lck;
-    std::condition_variable & final_cond;
-    bool & final_flag;
-
-   public:
-    signal_lock(
-        std::mutex & m,
-        std::condition_variable & final_cond,
-        bool & final_flag);
-    ~signal_lock();
-    signal_lock(signal_lock && lock);
-  };
-
-  void read_lock(std::unique_lock<std::mutex> & m);
-  void read_release();
-  signal_lock write_lock();
-
 
   /* Buffer data access */
   int available_read();
