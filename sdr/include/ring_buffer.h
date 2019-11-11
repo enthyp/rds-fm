@@ -8,18 +8,6 @@
 #include "const.h"
 
 
-class buffer_full_exception : public std::runtime_error {
- public:
-  buffer_full_exception() :
-      std::runtime_error("Buffer full!") {};
-};
-
-class buffer_empty_exception : public std::runtime_error {
- public:
-  buffer_empty_exception() :
-      std::runtime_error("Buffer empty!") {};
-};
-
 template <class T>
 struct mem_block {
   T * start_index;

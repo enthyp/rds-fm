@@ -11,7 +11,6 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
     fc {fc},
     kernel_length {kernel_length},
     kernel (kernel_length, 0.),
-    decimated_buffer {0},
     window_cnt {0}
     {
       double sum = 0;
@@ -35,27 +34,13 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
     }
 
 template <typename T_in, typename T_out>
-void decimator<T_in, T_out>::process_buffer() {
-  uint32_t len;
-  auto r_lock = this->input_buffer->read_lock();
-  int to_read = this->input_buffer->available_read();
-  len = decimate(to_read);
-
-  {
-    auto w_lock = this->output_buffer->write_lock();
-    mem_block<T_out> b = {decimated_buffer, len};
-    this->output_buffer->push_block(b);
-  }
-}
-
-template <typename T_in, typename T_out>
 complex_decimator<T_in, T_out>::complex_decimator(int m_factor, double fc, int kernel_length)
   : decimator<T_in, T_out>(m_factor, fc, kernel_length),
     acc_i {0},
     acc_q {0} {};
 
 template <typename T_in, typename T_out>
-uint32_t complex_decimator<T_in, T_out>::decimate(int len) {
+uint32_t complex_decimator<T_in, T_out>::process_buffer(int len) {
   int i = 0;
 
   while (len >= 2 * (this->kernel_length - this->window_cnt) && len > 2 * this->m_factor) {
@@ -67,8 +52,8 @@ uint32_t complex_decimator<T_in, T_out>::decimate(int len) {
       j += 2;
     }
 
-    this->decimated_buffer[i] = (T_out) acc_i;
-    this->decimated_buffer[i + 1] = (T_out) acc_q;
+    this->intermediate_buffer[i] = (T_out) acc_i;
+    this->intermediate_buffer[i + 1] = (T_out) acc_q;
     i += 2;
 
     this->window_cnt = acc_i = acc_q = 0;
@@ -85,7 +70,7 @@ real_decimator<T_in, T_out>::real_decimator(int m_factor, double fc, int kernel_
       acc {0} {};
 
 template <typename T_in, typename T_out>
-uint32_t real_decimator<T_in, T_out>::decimate(int len) {
+uint32_t real_decimator<T_in, T_out>::process_buffer(int len) {
   int i = 0;
 
   while (len >= this->kernel_length - this->window_cnt && len > this->m_factor) {
@@ -96,7 +81,7 @@ uint32_t real_decimator<T_in, T_out>::decimate(int len) {
       j++;
     }
 
-    this->decimated_buffer[i] = (T_out) acc;
+    this->intermediate_buffer[i] = (T_out) acc;
     i++;
 
     this->window_cnt = acc = 0;
