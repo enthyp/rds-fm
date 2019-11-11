@@ -3,32 +3,8 @@
 #include <cstring>
 #include "ring_buffer.h"
 
-
 template <class T>
-ring_buffer<T>::r_lock::r_lock(
-    std::mutex & m,
-    std::condition_variable & cv,
-    bool & cond)
-    : lock {m},
-      cv {cv},
-      cond {cond}
-{
-  cv.wait(this->lock, [this]{ return this->cond; });
-}
-
-template <class T>
-ring_buffer<T>::r_lock::~r_lock()
-{
-  cond = false;
-  lock.unlock();
-}
-
-template<class T>
-ring_buffer<T>::r_lock::r_lock(ring_buffer::r_lock &&other)
-  : lock {std::move(other.lock)}, cv {other.cv}, cond {other.cond} {};
-
-template <class T>
-ring_buffer<T>::w_lock::w_lock(
+ring_buffer<T>::signal_lock::signal_lock(
     std::mutex & m,
     std::condition_variable & cv,
     bool & cond)
@@ -36,17 +12,52 @@ ring_buffer<T>::w_lock::w_lock(
       cv {cv},
       cond {cond} {};
 
+template<class T>
+ring_buffer<T>::signal_lock::signal_lock(ring_buffer::signal_lock &&other)
+    : lock {std::move(other.lock)}, cv {other.cv}, cond {other.cond} {};
+
 template <class T>
-ring_buffer<T>::w_lock::~w_lock()
+ring_buffer<T>::signal_lock::~signal_lock() = default;
+
+template <class T>
+ring_buffer<T>::r_lock::r_lock(
+    std::mutex & m,
+    std::condition_variable & cv,
+    bool & cond)
+    : signal_lock(m, cv, cond)
 {
-  cond = true;
-  lock.unlock();
-  cv.notify_one();
+  cv.wait(this->lock, [this]{ return this->cond; });
 }
 
 template<class T>
-ring_buffer<T>::w_lock::w_lock(ring_buffer<T>::w_lock &&other)
-    : lock {std::move(other.lock)}, cv {other.cv}, cond {other.cond} {};
+ring_buffer<T>::r_lock::r_lock(ring_buffer::r_lock &&other)
+  : signal_lock(std::move(other)) {};
+
+template <class T>
+ring_buffer<T>::r_lock::~r_lock()
+{
+  this->cond = false;
+  this->lock.unlock();
+}
+
+template <class T>
+ring_buffer<T>::w_lock::w_lock(
+    std::mutex & m,
+    std::condition_variable & cv,
+    bool & cond)
+    : signal_lock(m, cv, cond) {};
+
+template<class T>
+ring_buffer<T>::w_lock::w_lock(ring_buffer::w_lock &&other)
+  : signal_lock(std::move(other)) {};
+
+template <class T>
+ring_buffer<T>::w_lock::~w_lock()
+{
+  this->cond = true;
+  this->lock.unlock();
+  this->cv.notify_one();
+}
 
 template <class T>
 typename ring_buffer<T>::r_lock ring_buffer<T>::read_lock()

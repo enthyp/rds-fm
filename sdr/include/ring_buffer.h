@@ -35,22 +35,24 @@ class ring_buffer {
       size {MAXIMUM_BUFFER_LENGTH},
       read_c {false} {};
 
-  /* Buffer access sync */
-  class r_lock {
-   private:
+  /* Buffer access synchronization */
+  class signal_lock {
+   protected:
     bool & cond;
     std::condition_variable & cv;
     std::unique_lock<std::mutex> lock;
+   public:
+    signal_lock(std::mutex & m, std::condition_variable & cv, bool & cond);
+    signal_lock(signal_lock && other);
+    virtual ~signal_lock() = 0;
+  };
+  class r_lock : signal_lock {
    public:
     r_lock(std::mutex & m, std::condition_variable & cv, bool & cond);
     r_lock(r_lock && other);
     ~r_lock();
   };
-  class w_lock {
-   private:
-    bool & cond;
-    std::condition_variable & cv;
-    std::unique_lock<std::mutex> lock;
+  class w_lock : signal_lock {
    public:
     w_lock(std::mutex & m, std::condition_variable & cv, bool & cond);
     w_lock(w_lock &&other);
@@ -70,17 +72,5 @@ class ring_buffer {
   void push_block(mem_block<T> & block) noexcept (false);
   void push(T element) noexcept (false);
 };
-
-// TODO: how to balance reads and writes?
-// Writer:
-// 1: let writers overwrite
-// 2: reject excessive writes
-// 3: wait for free space to write to
-//
-// Reader:
-// 1. suspend reader when no data available (cond variable)
-// 2. busy wait source reader
-// changed my mind: my processor does not seem to like them busy waits. Hence
-// FOR NOW: (2, 1)
 
 #endif  /* INCLUDE_RING_BUFFER_H */
