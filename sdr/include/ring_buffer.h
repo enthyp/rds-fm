@@ -20,7 +20,6 @@ class buffer_empty_exception : public std::runtime_error {
       std::runtime_error("Buffer empty!") {};
 };
 
-
 template <class T>
 struct mem_block {
   T * start_index;
@@ -31,14 +30,14 @@ struct mem_block {
 template <class T>
 class ring_buffer {
  private:
-  uint32_t head, tail, size, s_mask, b_mask;
-  std::vector<T> buffer;
-
- public:
   std::mutex m;
   std::condition_variable read_v;
   bool read_c;
 
+  uint32_t head, tail, size, s_mask, b_mask;
+  std::vector<T> buffer;
+
+ public:
   ring_buffer()
     : buffer (2 * MAXIMUM_BUFFER_LENGTH, 0),
       head {0},
@@ -47,6 +46,31 @@ class ring_buffer {
       b_mask {2 * MAXIMUM_BUFFER_LENGTH - 1},
       size {MAXIMUM_BUFFER_LENGTH},
       read_c {false} {};
+
+  /* Buffer access sync */
+  class r_lock {
+   private:
+    bool & cond;
+    std::condition_variable & cv;
+    std::unique_lock<std::mutex> lock;
+   public:
+    r_lock(std::mutex & m, std::condition_variable & cv, bool & cond);
+    r_lock(r_lock && other);
+    ~r_lock();
+  };
+  class w_lock {
+   private:
+    bool & cond;
+    std::condition_variable & cv;
+    std::unique_lock<std::mutex> lock;
+   public:
+    w_lock(std::mutex & m, std::condition_variable & cv, bool & cond);
+    w_lock(w_lock &&other);
+    ~w_lock();
+  };
+
+  r_lock read_lock();
+  w_lock write_lock();
 
   /* Buffer data access */
   int available_read();

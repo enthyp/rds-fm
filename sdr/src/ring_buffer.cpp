@@ -3,6 +3,65 @@
 #include <cstring>
 #include "ring_buffer.h"
 
+
+template <class T>
+ring_buffer<T>::r_lock::r_lock(
+    std::mutex & m,
+    std::condition_variable & cv,
+    bool & cond)
+    : lock {m},
+      cv {cv},
+      cond {cond}
+{
+  cv.wait(this->lock, [this]{ return this->cond; });
+}
+
+template <class T>
+ring_buffer<T>::r_lock::~r_lock()
+{
+  cond = false;
+  lock.unlock();
+}
+
+template<class T>
+ring_buffer<T>::r_lock::r_lock(ring_buffer::r_lock &&other)
+  : lock {std::move(other.lock)}, cv {other.cv}, cond {other.cond} {};
+
+template <class T>
+ring_buffer<T>::w_lock::w_lock(
+    std::mutex & m,
+    std::condition_variable & cv,
+    bool & cond)
+    : lock {m},
+      cv {cv},
+      cond {cond} {};
+
+template <class T>
+ring_buffer<T>::w_lock::~w_lock()
+{
+  cond = true;
+  lock.unlock();
+  cv.notify_one();
+}
+
+template<class T>
+ring_buffer<T>::w_lock::w_lock(ring_buffer<T>::w_lock &&other)
+    : lock {std::move(other.lock)}, cv {other.cv}, cond {other.cond} {};
+
+template <class T>
+typename ring_buffer<T>::r_lock ring_buffer<T>::read_lock()
+{
+  ring_buffer<T>::r_lock lock(m, read_v, read_c);
+  return lock;
+}
+
+template <class T>
+typename ring_buffer<T>::w_lock ring_buffer<T>::write_lock() {
+  ring_buffer<T>::w_lock lock(m, read_v, read_c);
+  return lock;
+}
+
+
 /* ring_buffer */
 
 /*

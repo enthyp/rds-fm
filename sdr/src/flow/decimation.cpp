@@ -37,21 +37,15 @@ decimator<T_in, T_out>::decimator(int m_factor, double fc, int kernel_length)
 template <typename T_in, typename T_out>
 void decimator<T_in, T_out>::process_buffer() {
   uint32_t len;
-  std::unique_lock<std::mutex> r_lock(this->input_buffer->m);
-  this->input_buffer->read_v.wait(r_lock, [this] { return this->input_buffer->read_c; });
+  auto r_lock = this->input_buffer->read_lock();
   int to_read = this->input_buffer->available_read();
   len = decimate(to_read);
 
-  std::unique_lock<std::mutex> w_lock(this->output_buffer->m);
-  mem_block<T_out> b = {decimated_buffer, len};
-  this->output_buffer->push_block(b);
-
-  this->output_buffer->read_c = true;
-  w_lock.unlock();
-  this->output_buffer->read_v.notify_one();
-
-  this->input_buffer->read_c = false;
-  r_lock.unlock();
+  {
+    auto w_lock = this->output_buffer->write_lock();
+    mem_block<T_out> b = {decimated_buffer, len};
+    this->output_buffer->push_block(b);
+  }
 }
 
 template <typename T_in, typename T_out>
