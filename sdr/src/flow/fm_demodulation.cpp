@@ -7,9 +7,11 @@ template <typename T_in, typename T_out>
 void fm_demodulator<T_in, T_out>::process_buffer() {
   int len;
   {
-    auto lock = this->input_buffer->read_lock();
+    std::unique_lock<std::mutex> l(this->input_buffer->m);
+    this->input_buffer->read_lock(l);
     int to_read = this->input_buffer->available_read();
     len = demodulate(to_read);
+    this->input_buffer->read_release();
   }
 
   auto lock = this->output_buffer->write_lock();

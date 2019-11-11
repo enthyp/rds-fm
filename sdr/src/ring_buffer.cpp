@@ -8,32 +8,22 @@
 template <class T>
 ring_buffer<T>::signal_lock::signal_lock(
     std::mutex & m,
-    std::condition_variable & init_cond,
-    bool & init_flag,
     std::condition_variable & final_cond,
     bool & final_flag)
     : lck (m),
-      init_cond {init_cond},
       final_cond {final_cond},
-      init_flag {init_flag},
-      final_flag {final_flag}
-      {
-        init_cond.wait(lck, [this] { return this -> init_flag; });
-      };
+      final_flag {final_flag} {};
 
 
 template <class T>
 ring_buffer<T>::signal_lock::~signal_lock() {
   final_flag = true;
-  init_flag = false;
   final_cond.notify_all();
 }
 
 template<class T>
 ring_buffer<T>::signal_lock::signal_lock(ring_buffer<T>::signal_lock && other)
   : lck(std::move(other.lck)),
-    init_cond {other.init_cond},
-    init_flag {other.init_flag},
     final_cond {other.final_cond},
     final_flag {other.final_flag} {};
 
@@ -52,16 +42,21 @@ int ring_buffer<T>::get_read_offset() {
 }
 
 template <class T>
-typename ring_buffer<T>::signal_lock ring_buffer<T>::read_lock()
+void ring_buffer<T>::read_lock(std::unique_lock<std::mutex> & lock)
 {
-  ring_buffer<T>::signal_lock l(m, read_v, read_c, write_v, write_c);
-  return l;
+  read_v.wait(lock, [this] { return read_c; });
+}
+
+template <class T>
+void ring_buffer<T>::read_release()
+{
+  read_c = false;
 }
 
 template <class T>
 typename ring_buffer<T>::signal_lock ring_buffer<T>::write_lock()
 {
-  ring_buffer<T>::signal_lock l(m, write_v, write_c, read_v, read_c);
+  ring_buffer<T>::signal_lock l(m, read_v, read_c);
   return l;
 }
 
@@ -104,7 +99,7 @@ void ring_buffer<T>::advance_head() {
   read_offset = 0;
 }
 
-/* Returns element at read index + offset (it it's in the buffer).
+/* Returns element at read index + offset (if it's in the buffer).
  * Offset should be non-negative.
  */
 template <class T>

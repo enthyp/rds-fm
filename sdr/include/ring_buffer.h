@@ -24,15 +24,16 @@ class buffer_empty_exception : public std::runtime_error {
 template <class T>
 class ring_buffer {
  private:
-  std::mutex m;
-  bool read_c, write_c;
-  std::condition_variable read_v, write_v;
+  bool read_c;
+  std::condition_variable read_v;
 
   bool empty;
   int head, tail, read_offset, size;
   std::vector<T> buffer;
 
  public:
+  std::mutex m;
+
   ring_buffer()
     : buffer (MAXIMUM_BUFFER_LENGTH, 0),
       head {0},
@@ -40,8 +41,7 @@ class ring_buffer {
       read_offset {0},
       empty {true},
       size {MAXIMUM_BUFFER_LENGTH},
-      read_c {false},
-      write_c {true} {};
+      read_c {false} {};
 
   int get_size();
   int get_read_offset();
@@ -49,27 +49,22 @@ class ring_buffer {
   /* Buffer access synchronization */
 
   class signal_lock {
-    /* Lock tied to a pair of condition variables.
-       Once constructed, we know condition is met and a lock is owned.
-       Once destructed, we know lock was released and final condition var was notified.
-    */
    private:
     std::unique_lock<std::mutex> lck;
-    std::condition_variable & init_cond, & final_cond;
-    bool & init_flag, & final_flag;
+    std::condition_variable & final_cond;
+    bool & final_flag;
 
    public:
     signal_lock(
         std::mutex & m,
-        std::condition_variable & init_cond,
-        bool & init_flag,
         std::condition_variable & final_cond,
         bool & final_flag);
     ~signal_lock();
     signal_lock(signal_lock && lock);
   };
 
-  signal_lock read_lock();
+  void read_lock(std::unique_lock<std::mutex> & m);
+  void read_release();
   signal_lock write_lock();
 
 
