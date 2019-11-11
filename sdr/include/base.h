@@ -47,15 +47,25 @@ template <class T_in, class T_out>
 class flow : public producer<T_out>, public consumer<T_in> {
  protected:
   std::atomic_bool working;
+  T_out intermediate_buffer[MAXIMUM_BUFFER_LENGTH];
 
   void worker() override
   {
     while (working) {
-      process_buffer();
+      uint32_t len;
+      auto r_lock = this->input_buffer->read_lock();
+      int to_read = this->input_buffer->available_read();
+      len = process_buffer(to_read);
+
+      {
+        auto w_lock = this->output_buffer->write_lock();
+        mem_block<T_out> b = {intermediate_buffer, len};
+        this->output_buffer->push_block(b);
+      }
     }
   };
   void stop_worker() override { working = false; }
-  virtual void process_buffer() = 0;
+  virtual uint32_t process_buffer(int len) = 0;
 
  public:
   flow<T_in, T_out>() : working {false} {};

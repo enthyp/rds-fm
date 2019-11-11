@@ -1,18 +1,17 @@
 #include <iostream>
 #include <algorithm>
+#include <unistd.h>
 #include "source/file_source.h"
 
 
 void file_source::worker() {
   while (working && source_file.read(reinterpret_cast<char *>(im_buffer), DEFAULT_BUFFER_LENGTH * sizeof(int16_t))) {
-    auto lock = output_buffer->write_lock();
+    usleep(100);  // don't make aplay choke with too high sample rate
+    auto w_lock = this->output_buffer->write_lock();
 
-    unsigned long available = output_buffer->available_write();
-    unsigned long count = source_file.gcount() / sizeof(int16_t);
-
-    for (unsigned long i = 0; i < std::min(count, available); i++) {
-      output_buffer->push(im_buffer[i]);
-    }
+    uint32_t count = source_file.gcount() / sizeof(int16_t);
+    mem_block<int16_t> b = {im_buffer, count};
+    output_buffer->push_block(b);
   }
 
   std::cerr << "Done! " << std::endl;

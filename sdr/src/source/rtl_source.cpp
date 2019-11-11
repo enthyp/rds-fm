@@ -42,7 +42,7 @@ void rtl_source::stop() {
 
 extern "C" void rtlsdr_callback(unsigned char * buf, uint32_t len, void *ctx) {
   auto source = (rtl_source*) ctx;
-  source->output_buffer->write_lock();
+  auto r_lock = source->output_buffer->write_lock();
 
   int available = source->output_buffer->available_write();
   for (int i = 0; i < std::min((int)len, available); i++) {

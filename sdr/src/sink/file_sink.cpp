@@ -19,13 +19,11 @@ template <typename T>
 void file_sink<T>::worker() {
   int i = 0;
   while (working) {
-    auto lock = this->input_buffer->read_lock();
+    auto r_lock = this->input_buffer->read_lock();
     auto b = this->input_buffer->take_block();
 
     (*target).write(reinterpret_cast<const char *>(b.start_index), b.length * sizeof(T));
-    this->input_buffer->move_read_index(b.length);
-    this->input_buffer->advance_head();
-    //std::cerr << "read " << b.length << " at " << this->input_buffer->get_read_offset() << std::endl;
+    this->input_buffer->advance_head(b.length);
   }
 }
 
