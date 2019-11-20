@@ -40,22 +40,26 @@ cdef class WSFilter:
         cdef np.ndarray [double, ndim=1] lp_samples 
         
         lp_len = ((samples.shape[0] - 2 * self.kernel_length + 2) // (2 * self.M)) * 2 
-        lp_samples = np.empty(lp_len, dtype=np.double)
-
-        for i in range(lp_len, 2):
+        lp_samples = np.ones(lp_len, dtype=np.double)
+        
+        i = 0
+        while i < lp_len:
+            j = 0
             acc_r = acc_i = 0
             offset = i * self.M
-            for j in range(2 * self.kernel_length, 2):
+            while j < 2 * self.kernel_length:
                 acc_r += samples[offset + j] * self.kernel[j] 
                 acc_i += samples[offset + j + 1] * self.kernel[j] 
+                j += 2
             lp_samples[i] = acc_r
             lp_samples[i + 1] = acc_i
-            
+            i += 2            
+
         return lp_samples
 
     cpdef complex_run(self, np.ndarray [complex, ndim=1] samples):
         cdef np.ndarray [double, ndim=1] interleaved
         interleaved = np.column_stack([samples.real, samples.imag]).flatten()
-
+       
         return self._complex_run(interleaved)
 
