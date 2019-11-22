@@ -34,6 +34,26 @@ cdef class WSFilter:
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)            
+    cpdef real_run(self, double[::1] samples):
+        cdef int i, j, offset, lp_len
+        cdef double acc
+        cdef np.ndarray [double, ndim=1] lp_samples 
+        
+        lp_len = (samples.shape[0] - self.kernel_length + 1) // self.M  
+        lp_samples = np.ones(lp_len, dtype=np.double)
+        
+        for i in range(lp_len):
+            acc = 0
+            offset = i * self.M
+            for j in range(self.kernel_length):
+                acc += samples[offset + j] * self.kernel[j] 
+            lp_samples[i] = acc
+
+        return lp_samples
+
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)            
     cdef _complex_run(self, double[::1] samples):
         cdef int i, j, offset, lp_len
         cdef double acc_r, acc_i
