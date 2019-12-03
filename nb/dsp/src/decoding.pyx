@@ -2,14 +2,14 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from scipy.signal import butter, lfilter
-from libc.math cimport cos, pi, sin, ceil, fmod, sqrt, pow
+from libc.math cimport cos, pi, sin, ceil, fabs, fmod, sqrt, pow
 
 
-cdef rrc(double t, double fs, double beta):
+cpdef rrc(double t, double fs, double beta):
     f = pi / (4 * beta)
     if t == 0:
         return fs * (1 + 1 / f - beta)
-    elif abs(t) == 1 / (4 * beta * fs):
+    elif fabs(t) == 1 / (4 * beta * fs):
         s = (1 + 2 / pi) * sin(f) + (1 - 2 / pi) * cos(f)
         return beta * fs / sqrt(2) * s
     else:
@@ -45,6 +45,8 @@ cdef class SymbolDecoder:
     cdef double[:] filter_buffer
     cdef double Ki, Kp, K0
   
+    cdef double B0, A0, A1
+
     def __init__(
         self, 
         int sampling_rate, 
@@ -83,7 +85,9 @@ cdef class SymbolDecoder:
 
     cdef _prepare_filterbanks(self, int M, double sps, int delay, double fs, double beta):
         cdef int i, j, n_coef, offset
+        cdef double hdh_max, t
 
+        hdh_max = 0
         self.buffer_ind = 0
         self.filterbank_size = M
         self.kernel_size = <int>(2 * sps * delay) + 1       
@@ -93,9 +97,9 @@ cdef class SymbolDecoder:
 
         for i in range(M):
             for j in range(self.kernel_size):
-                t = ((j - offset) + i / M) / fs
+                t = (<double>(j - offset) + <double>i / M) / fs
                 self.matched_filter[i][j] = rrc(t, fs, beta)
-         
+            
         for i in range(M):
             for j in range(self.kernel_size):
                 if i == 0:
@@ -105,30 +109,47 @@ cdef class SymbolDecoder:
                 else:
                     self.d_matched_filter[i][j] = self.matched_filter[i + 1][j] - self.matched_filter[i - 1][j]
 
+                if fabs(self.matched_filter[i][j] * self.d_matched_filter[i][j]) > hdh_max:
+                    hdh_max = fabs(self.matched_filter[i][j] * self.d_matched_filter[i][j])
+
+        for i in range(M):
+            for j in range(self.kernel_size):
+                self.d_matched_filter[i][j] *= 0.06 / hdh_max
+          
     cdef _prepare_loop_filter(self, double fs, double zeta, double pe_gain, double nco_gain, double Bn):
         cdef double factor_1, factor_2
-        
+        cdef double alpha, beta, a, b        
+
         Bn *= fs
         factor_1 = 1 / (pe_gain * nco_gain) 
         factor_2 = (Bn / fs) / (zeta + 1 / (4 * zeta))
-        self.Kp = factor_1 * 4 * zeta * factor_2
-        self.Ki = factor_1 * 4 * pow(factor_2, 2)
+        # self.Kp = factor_1 * 4 * zeta * factor_2
+        self.Kp = 1
+        # self.Ki = factor_1 * 4 * pow(factor_2, 2)
+        self.Ki = 0.5 * Bn
         self.K0 = nco_gain
+
+        alpha = 1 - Bn
+        beta  = 0.22 * Bn
+        a = 0.5
+        b = 0.495
+
+        self.B0 = beta;
+        
+        self.A0 = 1 - a * alpha
+        self.A1 = - b * alpha
 
     cdef _prepare_control(self, double sps, double o_sps, int delay):
         self.filter_buffer = np.empty((self.kernel_size, ), dtype=np.double)
         self.soft_index = 0
         self.filterbank_index = 0
 
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)            
     cpdef run(self, double[:] samples):
         cdef int i, out_i
         cdef int sample_count
         cdef double tau, tau_delta 
         cdef double pll_phase, time_err
-        cdef double integrator_acc
+        cdef double integrator_acc, pref_acc
         cdef double filter_out
         cdef np.ndarray [double, ndim=1] output_samples
 
@@ -137,13 +158,13 @@ cdef class SymbolDecoder:
         tau = 0
         tau_delta = self.sps / self.o_sps
         integrator_acc = 0
+        pref_acc = 0
         output_samples = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
 
         for i in range(len(samples)):
             self.push_sample(samples[i])
             
             while self.filterbank_index < self.filterbank_size:
-                print(out_i)
                 output_samples[out_i] = self.filterbank_output(self.matched_filter, self.filterbank_index)
                 out_i += 1
 
@@ -153,6 +174,13 @@ cdef class SymbolDecoder:
                     # Estimate time error (maximum likelihood principle).
                     time_err = output_samples[out_i - 1]
                     time_err = time_err * self.filterbank_output(self.d_matched_filter, self.filterbank_index)
+                    if time_err > 1:
+                        time_err = 1
+                    elif time_err < -1:
+                        time_err = -1
+
+                    # Super-simple filter.
+                    pref_acc += self.B0 * (self.A0 * time_err + self.A1 * pref_acc)
 
                     # Lowpass filter - proportional + integrator.
                     integrator_acc += self.Ki * time_err

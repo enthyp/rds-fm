@@ -2,8 +2,8 @@ from dsp.fir import WSFilter
 
 
 class AMDemodulator:
-    def __init__(self, fc, fq):
-        self.lowpass = WSFilter(257, 1, fc / fq)  # Replace windowed-sinc with root-raised-cosine!
+    def __init__(self, fc, fq, M):
+        self.lowpass = WSFilter(257, M, fc / fq) 
 
     def run(self, samples, pilot):
         mixed = samples * pilot
