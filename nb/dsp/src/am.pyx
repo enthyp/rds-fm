@@ -1,4 +1,4 @@
-from fir import WSFilter
+from dsp.fir import WSFilter
 
 
 class AMDemodulator:

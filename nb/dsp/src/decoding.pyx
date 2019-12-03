@@ -2,7 +2,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from scipy.signal import butter, lfilter
-from libc.math cimport cos, pi, sin, fmod, sqrt, pow
+from libc.math cimport cos, pi, sin, ceil, fmod, sqrt, pow
 
 
 cdef rrc(double t, double fs, double beta):
@@ -35,9 +35,13 @@ cdef class SymbolDecoder:
 
     """ 
 
+    cdef double sps, o_sps
+    cdef int filterbank_size
     cdef int filterbank_index
     cdef double soft_index
+    cdef int kernel_size
     cdef double[:, :] matched_filter, d_matched_filter
+    cdef int buffer_ind
     cdef double[:] filter_buffer
     cdef double Ki, Kp, K0
   
@@ -45,6 +49,7 @@ cdef class SymbolDecoder:
         self, 
         int sampling_rate, 
         double samples_per_symbol, 
+        double out_samples_per_symbol,
         int symbol_delay=3,
         int filterbank_size=32,
         double matched_filter_rolloff=0.8,
@@ -53,6 +58,9 @@ cdef class SymbolDecoder:
         double nco_gain=1,
         double Bn=0.05
     ):
+        self.sps = samples_per_symbol
+        self.o_sps = out_samples_per_symbol
+
         self._prepare_filterbanks(
             filterbank_size, 
             samples_per_symbol,
@@ -61,7 +69,7 @@ cdef class SymbolDecoder:
             matched_filter_rolloff
         )
         self._prepare_loop_filter(
-            1 / sampling_rate,
+            sampling_rate,
             zeta,
             pe_gain,
             nco_gain,
@@ -69,24 +77,27 @@ cdef class SymbolDecoder:
         )
         self._prepare_control(
             samples_per_symbol, 
+            out_samples_per_symbol,
             symbol_delay
         )
 
     cdef _prepare_filterbanks(self, int M, double sps, int delay, double fs, double beta):
         cdef int i, j, n_coef, offset
 
-        n_coef = <int>(2 * sps * delay) + 1       
-        self.matched_filter = np.empty((M, n_coef), dtype=np.double)
-        self.d_matched_filter = np.empty((M, n_coef), dtype=np.double)
-        offset = <int>(n_coef / 2)
+        self.buffer_ind = 0
+        self.filterbank_size = M
+        self.kernel_size = <int>(2 * sps * delay) + 1       
+        self.matched_filter = np.empty((M, self.kernel_size), dtype=np.double)
+        self.d_matched_filter = np.empty((M, self.kernel_size), dtype=np.double)
+        offset = <int>(self.kernel_size / 2)
 
         for i in range(M):
-            for j in range(n_coef):
+            for j in range(self.kernel_size):
                 t = ((j - offset) + i / M) / fs
                 self.matched_filter[i][j] = rrc(t, fs, beta)
          
         for i in range(M):
-            for j in range(n_coef):
+            for j in range(self.kernel_size):
                 if i == 0:
                     self.d_matched_filter[i][j] = self.matched_filter[1][j] - self.matched_filter[M - 1][j]                  
                 elif i == M - 1:
@@ -96,8 +107,6 @@ cdef class SymbolDecoder:
 
     cdef _prepare_loop_filter(self, double fs, double zeta, double pe_gain, double nco_gain, double Bn):
         cdef double factor_1, factor_2
-        self.b = np.empty((3, ), dtype=np.double)
-        self.a = np.empty((3, ), dtype=np.double)
         
         Bn *= fs
         factor_1 = 1 / (pe_gain * nco_gain) 
@@ -106,42 +115,88 @@ cdef class SymbolDecoder:
         self.Ki = factor_1 * 4 * pow(factor_2, 2)
         self.K0 = nco_gain
 
-    cdef _prepare_control(self, double sps, int delay):
-        self.filter_buffer = np.empty((2 * sps * delay + 1, ), dtype=np.double)
-        self.soft_index = 1
+    cdef _prepare_control(self, double sps, double o_sps, int delay):
+        self.filter_buffer = np.empty((self.kernel_size, ), dtype=np.double)
+        self.soft_index = 0
         self.filterbank_index = 0
 
-    cpdef run(self, samples):
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)            
+    cpdef run(self, double[:] samples):
         cdef int i, out_i
+        cdef int sample_count
+        cdef double tau, tau_delta 
         cdef double pll_phase, time_err
         cdef double integrator_acc
         cdef double filter_out
-        cdef double nco_acc
-        cdef np.ndarray [double, ndim=1] output_phases
+        cdef np.ndarray [double, ndim=1] output_samples
 
         out_i = 0
-        pll_phase = 0
+        sample_count = 0 
+        tau = 0
+        tau_delta = self.sps / self.o_sps
         integrator_acc = 0
-        nco_acc = 0
-        output_phases = np.empty(len(samples), dtype=np.double) 
+        output_samples = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
 
         for i in range(len(samples)):
-            # Prepare interpolate value.
-            if soft_index < 0:
-                self.filterbank_index = <int>()
-                self._run_filterbank(self.filterbank_index)
-                self.soft_index = 1 - self.soft_index
-                
+            self.push_sample(samples[i])
             
+            while self.filterbank_index < self.filterbank_size:
+                print(out_i)
+                output_samples[out_i] = self.filterbank_output(self.matched_filter, self.filterbank_index)
+                out_i += 1
+
+                if sample_count == self.o_sps:
+                    sample_count = 0
+ 
+                    # Estimate time error (maximum likelihood principle).
+                    time_err = output_samples[out_i - 1]
+                    time_err = time_err * self.filterbank_output(self.d_matched_filter, self.filterbank_index)
+
+                    # Lowpass filter - proportional + integrator.
+                    integrator_acc += self.Ki * time_err
+                    filter_out = integrator_acc + self.Kp * time_err 
+
+                    # Update tau_delta.
+                    tau_delta += self.K0 * filter_out
+
+                sample_count += 1
+                tau += tau_delta
+                self.soft_index = tau * self.filterbank_size
+                self.filterbank_index = <int>self.soft_index
             
-            # TODO: Upsample.
+            tau -= 1
+            self.soft_index -= self.filterbank_size
+            self.filterbank_index = <int>self.soft_index
+        
+        return output_samples[:out_i] 
 
-            # Lowpass filter - proportional + integrator.
-            integrator_acc += self.Ki * time_err
-            filter_out = integrator_acc + self.Kp * time_err 
 
-            # VCO - update PLL phase value.
-            self.soft_index -= (self.K0 * filter_out + )
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)            
+    @cython.cdivision(True)
+    cdef void push_sample(self, double sample):
+        self.filter_buffer[self.buffer_ind] = sample
+        self.buffer_ind = (self.buffer_ind + 1) % self.kernel_size
+
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)            
+    cdef double filterbank_output(self, double[:, :] filterbank, int index):
+        cdef int i
+        cdef double mult, result
+
+        result = 0
+    
+        for i in range(self.kernel_size):
+            mult = self.filter_buffer[(self.buffer_ind + i) % self.kernel_size] 
+            mult *= filterbank[index][i]
+            result += mult
+
+        return result
 
 
 cdef class BiphaseDecoder:

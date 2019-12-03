@@ -79,7 +79,7 @@ cdef class PLL_2:
         self.Kp = factor_1 * 4 * zeta * factor_2
         self.Ki = factor_1 * 4 * factor_2 ** 2
 
-    cpdef run(self, samples):
+    cpdef run(self, double[::1] samples):
         cdef int i
         cdef double pll_phase, phase_err
         cdef double integrator_acc

@@ -5,6 +5,9 @@ import numpy as np
 
 
 cdef class FMDemodulator:        
+    def __cinit__(self):
+        pass
+
     cdef _run(self, double[::1] samples):
         cdef int i 
         cdef double angle_c, angle_p, angle_diff
