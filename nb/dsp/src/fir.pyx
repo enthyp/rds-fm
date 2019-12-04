@@ -14,15 +14,15 @@ cdef class FIRFilter:
     cdef double fc
     cdef double [::1] kernel
 
-    def __init__(self, int kernel_length, int M, double fc):
+    def __init__(self, int kernel_length, int M, double fc, int lowpass=1):
         self.M = M
         self.fc = fc
         self.kernel_length = kernel_length
         self.kernel = np.zeros((kernel_length,), dtype=np.double)
 
-        self._prepare_kernel()        
+        self._prepare_kernel(lowpass)        
 
-    cdef _prepare_kernel(self):
+    cdef _prepare_kernel(self, bint lowpass):
         raise NotImplementedError
 
     @cython.initializedcheck(False)
@@ -78,7 +78,7 @@ cdef class FIRFilter:
 cdef class WSFilter(FIRFilter):
     """A windowed-sinc FIR filter."""
 
-    cdef _prepare_kernel(self):
+    cdef _prepare_kernel(self, bint lowpass):
         cdef int i
         cdef double s 
 
@@ -95,4 +95,9 @@ cdef class WSFilter(FIRFilter):
         for i in range(self.kernel_length):
             self.kernel[i] /= s
 
+        if not lowpass:
+            for i in range(self.kernel_length):
+                self.kernel[i] *= -1;
+            if self.kernel_length & 1: 
+                self.kernel[self.kernel_length // 2] = 1 - self.kernel[self.kernel_length // 2]
 
