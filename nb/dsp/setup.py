@@ -3,6 +3,7 @@ from Cython.Build import cythonize
 
 
 extensions = [
+    Extension('dsp.agc', ['src/agc.pyx']),
     Extension('dsp.decoding', ['src/decoding.pyx']),
     Extension('dsp.pll', ['src/pll.pyx']), 
     Extension('dsp.fir', ['src/fir.pyx']), 
