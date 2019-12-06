@@ -6,10 +6,11 @@ import numpy as np
 
 
 cdef class AGC:
-    cdef double alpha
+    cdef double alpha, init_gain
 
-    def __init__(self, double alpha=0.01):
+    def __init__(self, double init_gain=1, double alpha=0.01):
         self.alpha = alpha
+        self.init_gain = init_gain
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
@@ -21,7 +22,7 @@ cdef class AGC:
         cdef double pow_est
         cdef np.ndarray[double, ndim=1] out_samples
 
-        gain = 1 
+        gain = self.init_gain 
         pow_est = 0
         out_samples = np.empty((len(samples), ), dtype=np.double)
     

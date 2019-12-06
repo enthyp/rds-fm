@@ -1,4 +1,5 @@
 ## Software Defined Radio
 This repository is an attempt to implement FM/RDS receiver from scratch (to learn more about wheels).  
 
-As for now, it's a ball of messy C++ (or, more likely, C with objects), at least until I learn more about the language.
+The code should eventually be runnable in real-time on my RTL-SDR dongle (C++ part). Until then, most experiments are run with Python/Cython in Jupyter notebooks.
+

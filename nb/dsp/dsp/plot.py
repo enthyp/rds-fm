@@ -11,7 +11,7 @@ def welch(samples, sample_rate, nper=1024, fig_size=(20, 10)):
     ind = np.argsort(f)
     f, Pxx = np.take_along_axis(f, ind, axis=0), np.take_along_axis(Pxx, ind, axis=0)
     
-    plt.figure(figsize=std_fsize)
+    plt.figure(figsize=fig_size)
     plt.semilogy(f/1e3, Pxx)
     plt.xlabel('f [kHz]')
     plt.ylabel('PSD [Power/Hz]')
