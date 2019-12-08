@@ -17,4 +17,4 @@ class AMDemodulator:
         mixed = samples * pilot
         lp_samples = self.lowpass.real_run(mixed)
         return 2 * lp_samples  
-
+       

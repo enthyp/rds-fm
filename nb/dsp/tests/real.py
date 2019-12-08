@@ -3,10 +3,10 @@ import numpy as np
 from dsp.decoding import SymbolDecoder
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-samples = np.load(os.path.join(dir_path, 'rds.npy'))
+samples = np.load(os.path.join(dir_path, '..', '..', 'data', 'rds.npy'))
 
 symbol_rate = 2375
-sample_rate = 2400
+sample_rate = 171000
 samples_per_symbol = sample_rate / symbol_rate
 output_samples_per_symbol = 1
 symbol_delay = 3
@@ -23,4 +23,4 @@ sd = SymbolDecoder(
 )
 
 symbols = sd.run(samples)
-print(symbols[:10])
+print(symbols[:30])

@@ -4,4 +4,6 @@ __pycache__
 build/
 dist/
 *.so
+*.c
+*.html
 *.egg-info/

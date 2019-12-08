@@ -123,10 +123,10 @@ cdef class SymbolDecoder:
         Bn *= fs
         factor_1 = 1 / (pe_gain * nco_gain) 
         factor_2 = (Bn / fs) / (zeta + 1 / (4 * zeta))
-        # self.Kp = factor_1 * 4 * zeta * factor_2
-        self.Kp = 1
-        # self.Ki = factor_1 * 4 * pow(factor_2, 2)
-        self.Ki = 0.5 * Bn
+        self.Kp = factor_1 * 4 * zeta * factor_2
+        # self.Kp = 1
+        self.Ki = factor_1 * 4 * pow(factor_2, 2)
+        # self.Ki = 0.5 * Bn
         self.K0 = nco_gain
 
         alpha = 1 - Bn
@@ -134,7 +134,7 @@ cdef class SymbolDecoder:
         a = 0.5
         b = 0.495
 
-        self.B0 = beta;
+        self.B0 = beta
         
         self.A0 = 1 - a * alpha
         self.A1 = - b * alpha

@@ -58,7 +58,7 @@ cdef class PLL:
             pll_out  = cos(pll_phase)
             output_samples[i] = cos(pll_phase - pi / 2)
 
-        return output_samples
+        return output_samples  # TODO: pointless... get phases
 
 
 cdef class PLL_2:
@@ -81,32 +81,40 @@ cdef class PLL_2:
 
     cpdef run(self, double[::1] samples):
         cdef int i
-        cdef double pll_phase, phase_err
+        cdef double pll_phase, phase_total, phase_err
         cdef double integrator_acc
         cdef double filter_out
         cdef double nco_acc
-        cdef np.ndarray [double, ndim=1] output_phases
+        cdef np.ndarray [double, ndim=1] output_phases, phase_errors, phase_corrections
 
         pll_phase = 0
+        phase_total = 0
         integrator_acc = 0
         nco_acc = 0
         output_phases = np.empty(len(samples), dtype=np.double) 
+        phase_errors = np.empty(len(samples), dtype=np.double) 
+        phase_corrections = np.empty(len(samples), dtype=np.double) 
 
         for i in range(len(samples)):
             # Estimate phase error.
-            phase_err = -sin(2 * pi * self.fq / self.fs * i + pll_phase) * samples[i]
-
+            #phase_err = -sin(2 * pi * self.fq / self.fs * i + pll_phase) * samples[i]
+            phase_err = -sin(phase_total) * samples[i]
+            phase_errors[i] = phase_err
+        
             # Lowpass filter - proportional + integrator.
             integrator_acc += self.Ki * phase_err
             filter_out = integrator_acc + self.Kp * phase_err
-
+            
             # VCO - update PLL phase value.
             pll_phase += self.K0 * filter_out
-                       
-            # Save PLL output.
-            output_phases[i] = 2 * pi * self.fq / self.fs * i + pll_phase
+            phase_corrections[i] = pll_phase
 
-        return output_phases            
+            # Save PLL output.
+            pll_phase = fmod(pll_phase, 2 * pi)
+            phase_total = fmod(2 * pi * self.fq / self.fs * i + pll_phase, 2 * pi)
+            output_phases[i] = phase_total
+
+        return output_phases, phase_errors, phase_corrections
 
 
 cdef class PLL_3:

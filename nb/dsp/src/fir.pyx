@@ -99,5 +99,5 @@ cdef class WSFilter(FIRFilter):
             for i in range(self.kernel_length):
                 self.kernel[i] *= -1;
             if self.kernel_length & 1: 
-                self.kernel[self.kernel_length // 2] = 1 - self.kernel[self.kernel_length // 2]
+                self.kernel[self.kernel_length // 2] = 1 + self.kernel[self.kernel_length // 2]
 

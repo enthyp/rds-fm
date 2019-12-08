@@ -10,8 +10,8 @@
 
 class fm_receiver {
  private:
-  //rtl_source input;
-  file_source input;
+  rtl_source input;
+  //file_source input;
   ring_buffer<int16_t> med1;
   complex_decimator<int16_t, double> decimator;
   ring_buffer<double> med2;
@@ -23,8 +23,8 @@ class fm_receiver {
 
  public:
   fm_receiver(uint32_t dev_index, int freq, int sampling_rate, int kernel_len1, int kernel_len2, std::string & source, std::string & target)
-      : input {source},
-        //input {dev_index, freq, sampling_rate},
+      : //input {source},
+        input {dev_index, freq, sampling_rate},
         decimator {10, 1. / (2 * 1.2 * 10), kernel_len1},
         decimator2 {5, 1. / (2 * 1.2 * 5), kernel_len2},
         output {target}
