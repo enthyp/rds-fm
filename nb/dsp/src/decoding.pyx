@@ -6,18 +6,23 @@ from libc.math cimport cos, pi, sin, ceil, fabs, fmod, sqrt, pow
 
 
 cpdef rrc(double t, double fs, double beta):
+    cdef double f, s, num, den
+
     f = pi / (4 * beta)
-    if t == 0:
-        return fs * (1 + 1 / f - beta)
-    elif fabs(t) == 1 / (4 * beta * fs):
+    if fabs(t) < 1e-5:
+        # return fs * (1 + 1 / f - beta)
+        return (1 + 1 / f - beta)
+    elif fabs(fabs(t) - 1 / (4 * beta * fs)) < 1e-5:
         s = (1 + 2 / pi) * sin(f) + (1 - 2 / pi) * cos(f)
-        return beta * fs / sqrt(2) * s
+        # return beta * fs / sqrt(2) * s
+        return beta / sqrt(2) * s
     else:
         num = sin(pi * t * fs * (1 - beta))
         num += 4 * beta * t * fs * cos(pi * t * fs * (1 + beta))
         den = pi * t * fs * (1 - pow(4 * beta * t * fs, 2))
 
-        return fs * num / den
+        # return fs * num / den
+        return num / den
 
 
 cdef class SymbolDecoder:
@@ -88,7 +93,6 @@ cdef class SymbolDecoder:
         cdef double hdh_max, t
 
         hdh_max = 0
-        self.buffer_ind = 0
         self.filterbank_size = M
         self.kernel_size = <int>(2 * sps * delay) + 1       
         self.matched_filter = np.empty((M, self.kernel_size), dtype=np.double)
@@ -133,14 +137,15 @@ cdef class SymbolDecoder:
         beta  = 0.22 * Bn
         a = 0.5
         b = 0.495
-
-        self.B0 = beta
         
         self.A0 = 1 - a * alpha
-        self.A1 = - b * alpha
+        self.A1 = - b * alpha / self.A0
+        self.B0 = beta / self.A0
+        self.A0 = 1  # not necessary actually
 
     cdef _prepare_control(self, double sps, double o_sps, int delay):
-        self.filter_buffer = np.empty((self.kernel_size, ), dtype=np.double)
+        self.buffer_ind = 0
+        self.filter_buffer = np.zeros((self.kernel_size, ), dtype=np.double)
         self.soft_index = 0
         self.filterbank_index = 0
 
@@ -152,6 +157,7 @@ cdef class SymbolDecoder:
         cdef double integrator_acc, pref_acc
         cdef double filter_out
         cdef np.ndarray [double, ndim=1] output_samples
+        cdef np.ndarray[double, ndim=1] output_xs, taus, tau_deltas
 
         out_i = 0
         sample_count = 0 
@@ -160,17 +166,29 @@ cdef class SymbolDecoder:
         integrator_acc = 0
         pref_acc = 0
         output_samples = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
+        output_xs = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
+        tau_deltas = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
+        taus = np.empty(len(samples) * <int>ceil(self.o_sps / self.sps), dtype=np.double) 
+
 
         for i in range(len(samples)):
+#            print('i: ', i)
             self.push_sample(samples[i])
             
-            while self.filterbank_index < self.filterbank_size:
+            while out_i < len(samples) * <int>ceil(self.o_sps / self.sps) and self.filterbank_index < self.filterbank_size:
+#                print('filterbank_index: ', self.filterbank_index)
+#                print('output_index: ', out_i)
                 output_samples[out_i] = self.filterbank_output(self.matched_filter, self.filterbank_index)
+                output_samples[out_i] /= self.sps
+                tau_deltas[out_i] = tau_delta
+                taus[out_i] = tau
+
+                output_xs[out_i] = i + self.filterbank_index / self.filterbank_size
                 out_i += 1
 
                 if sample_count == self.o_sps:
                     sample_count = 0
- 
+           
                     # Estimate time error (maximum likelihood principle).
                     time_err = output_samples[out_i - 1]
                     time_err = time_err * self.filterbank_output(self.d_matched_filter, self.filterbank_index)
@@ -180,48 +198,52 @@ cdef class SymbolDecoder:
                         time_err = -1
 
                     # Super-simple filter.
-                    pref_acc += self.B0 * (self.A0 * time_err + self.A1 * pref_acc)
+                    pref_acc = time_err - self.A1 * pref_acc
+                    # pref_acc += self.B0 * (self.A0 * time_err - self.A1 * pref_acc)
 
                     # Lowpass filter - proportional + integrator.
-                    integrator_acc += self.Ki * time_err
-                    filter_out = integrator_acc + self.Kp * time_err 
+                    integrator_acc += self.Ki * self.B0 * pref_acc # time_err
+                    filter_out = integrator_acc + self.Kp * pref_acc # time_err 
 
                     # Update tau_delta.
                     tau_delta += self.K0 * filter_out
-
+    
                 sample_count += 1
                 tau += tau_delta
                 self.soft_index = tau * self.filterbank_size
+                if self.soft_index < 0:
+                    self.soft_index = <int>(-self.soft_index / pi) + pi
+                    self.soft_index = self.soft_index - fmod(self.soft_index, self.filterbank_size)
                 self.filterbank_index = <int>self.soft_index
             
             tau -= 1
             self.soft_index -= self.filterbank_size
             self.filterbank_index = <int>self.soft_index
         
-        return output_samples[:out_i] 
+        return output_samples[:out_i], output_xs[:out_i], taus[:out_i], tau_deltas[:out_i] 
 
 
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)            
-    @cython.cdivision(True)
+    #@cython.initializedcheck(False)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)            
+    #@cython.cdivision(True)
     cdef void push_sample(self, double sample):
         self.filter_buffer[self.buffer_ind] = sample
         self.buffer_ind = (self.buffer_ind + 1) % self.kernel_size
 
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)            
-    cdef double filterbank_output(self, double[:, :] filterbank, int index):
+    #@cython.initializedcheck(False)
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)            
+    cdef double filterbank_output(self, double[:, :] filterbank, int index) except *:
         cdef int i
         cdef double mult, result
 
         result = 0
     
-        for i in range(self.kernel_size):
-            mult = self.filter_buffer[(self.buffer_ind + i) % self.kernel_size] 
-            mult *= filterbank[index][i]
+        for i in range(1, self.kernel_size + 1):
+            mult = self.filter_buffer[(self.buffer_ind - i) % self.kernel_size] 
+            mult *= filterbank[index][self.kernel_size - i]
             result += mult
 
         return result
