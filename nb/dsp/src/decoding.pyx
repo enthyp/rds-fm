@@ -260,14 +260,55 @@ cdef class BiphaseDecoder:
     transmitter is performed and next that signal is sampled at appropriate
     time points (cf. SymbolDecoder implementation). Finally, obtained samples
     are normalized to 0/1 binary values.
-   
+
+    In case of errors (when 2 different bits are expected to decode as 0/1 but
+    2 identical ones are received instead) a single bit is skipped and normal 
+    operation is resumed. This corrects a 1 bit offset error within a symbol, 
+    but if 2 identical bits were due to receiver error it introduces a 1 bit 
+    offset error anew. It is however corrected upon next pair of identical bits - 
+    - no matter if they come from an error or were originally sent. 
+  
     """
 
-    cpdef run(self, double[::1] samples, double[::1] clock_samples):
-        cdef double[::1] deltas
+    cpdef max_run(self, double[::1] samples):
+        cdef int i = 1
+        cdef int cur_len = 1, max_len = 1
+        cdef max_ind = 0
 
-        deltas = np.diff(samples)[::2]
-        return self._diff_decode(deltas)
+        for i in range(1, len(samples)):
+            if samples[i] * samples[i - 1] > 0:
+                cur_len += 1
+            else:
+                max_ind = i
+                max_len = max_len if max_len > cur_len else cur_len
+                cur_len = 1
+
+        return max_ind, max_len 
+
+    cpdef run(self, double[::1] samples):
+        # TODO: test it!
+        cdef int i, j, l
+        cdef double diff
+        cdef double[::1] output
+       
+        i = j = 0 
+        l = len(samples) // 2
+        output = np.array((l, ), dtype=np.double)
+
+        while i < len(samples) - 1:
+            diff = samples[i] - samples[i + 1]
+            if diff > 1e-5:
+                output[j] = 1
+            elif diff < -1e-5:
+                output[j] = 0
+            else:
+                i += 1
+                continue
+
+            j += 1
+            i += 2            
+
+        return self._diff_decode(output[:j])        
 
     cdef _diff_decode(self, double[::1] samples):
         return np.logical_xor(samples[1:], samples[:-1]).astype(np.double)
