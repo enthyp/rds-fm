@@ -286,14 +286,12 @@ cdef class BiphaseDecoder:
         return max_ind, max_len 
 
     cpdef run(self, double[::1] samples):
-        # TODO: test it!
-        cdef int i, j, l
+        cdef int i, j
         cdef double diff
-        cdef double[::1] output
+        cdef np.ndarray[double, ndim=1] output
        
         i = j = 0 
-        l = len(samples) // 2
-        output = np.array((l, ), dtype=np.double)
+        output = np.empty((samples.shape[0] // 2, ), dtype=np.double)
 
         while i < len(samples) - 1:
             diff = samples[i] - samples[i + 1]
