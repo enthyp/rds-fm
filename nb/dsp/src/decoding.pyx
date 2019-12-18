@@ -3,6 +3,7 @@ cimport numpy as np
 import numpy as np
 from scipy.signal import butter, lfilter
 from libc.math cimport cos, pi, sin, ceil, fabs, fmod, sqrt, pow
+from functools import reduce
 
 
 cpdef rrc(double t, double fs, double beta):
@@ -310,4 +311,78 @@ cdef class BiphaseDecoder:
 
     cdef _diff_decode(self, double[::1] samples):
         return np.logical_xor(samples[1:], samples[:-1]).astype(np.double)
+
+
+class BlockGenerator:
+    def __init__(self):
+        self.parity_matrix = np.array([
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 0, 1, 1, 1, 0, 0],
+            [0, 1, 0, 1, 1, 0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 1, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 0, 0, 0, 1, 1, 1],
+            [1, 1, 1, 0, 0, 1, 1, 1, 1, 1],
+            [1, 1, 0, 0, 0, 1, 0, 0, 1, 1],
+            [1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 1, 0, 1, 1, 1, 0, 1, 1, 0],
+            [0, 1, 1, 0, 1, 1, 1, 0, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 0],
+            [0, 0, 1, 1, 1, 1, 0, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 0, 1, 1, 1],
+            [1, 1, 1, 0, 0, 0, 1, 1, 1, 1],
+            [1, 1, 0, 0, 0, 1, 1, 0, 1, 1]
+        ], dtype=np.int)
+
+        self.offset_syndrome = {
+            0b1111011000: 'A',
+            0b1111010100: 'B',
+            0b1001011100: 'C',
+            0b1111001100: 'C\'',
+            0b1001011000: 'E'
+        }
+ 
+
+    def syndrome(self, word):
+        product = np.dot(word, self.parity_matrix)
+        return reduce(lambda a,b: (a << 1) | b, product, 0)
+
+    def offset(self, syndrome):
+        pass
+
+    def synchronize(self, bits):
+        pass    
+
+    def process_blocks(self, bits):
+        pass
+
+    def find_blocks(self, bits):
+        # Steps:
+        # - iterate over given bits
+        #   - calculate syndrome and check if it corresponds to valid offset word
+        #   - when 2 valid offset words have been encountered and 
+        #     they were spaced fine - assume we're in sync
+        #   - once in sync - calculate syndrome for each block and correct errors,
+        #     append corrected block to the result list
+        # * if too many uncorrectable errors occur (>45 per 50?) - assume sync loss, 
+        #   try to acquire again
+        i = 0
+        blocks = np.zeros((len(bits) // 26, 26), dtype=np.int)        
+
+        while i < len(bits):
+            skipped = self.synchronize(bits[i:])
+            processed = self.process_blocks(bits[i + skipped:])
+            i += skipped + processed
+
+
 
