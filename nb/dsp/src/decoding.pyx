@@ -349,12 +349,12 @@ class BlockGenerator:
             0b1111010100: 'B',
             0b1001011100: 'C',
             0b1111001100: 'C\'',
-            0b1001011000: 'E'
+            0b1001011000: 'D'
         }
  
 
     def syndrome(self, word):
-        product = np.dot(word, self.parity_matrix)
+        product = np.dot(word, self.parity_matrix) % 2
         return reduce(lambda a,b: (a << 1) | b, product, 0)
 
     def offset(self, syndrome):
