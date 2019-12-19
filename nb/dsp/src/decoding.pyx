@@ -1,6 +1,7 @@
 cimport cython
 cimport numpy as np
 import numpy as np
+from collections import deque
 from scipy.signal import butter, lfilter
 from libc.math cimport cos, pi, sin, ceil, fabs, fmod, sqrt, pow
 from functools import reduce
@@ -345,26 +346,100 @@ class BlockGenerator:
         ], dtype=np.int)
 
         self.offset_syndrome = {
-            0b1111011000: 'A',
-            0b1111010100: 'B',
-            0b1001011100: 'C',
-            0b1111001100: 'C\'',
-            0b1001011000: 'D'
+            0b1111011000: 0,
+            0b1111010100: 1,
+            0b1001011100: 2,
+            0b1111001100: 2,
+            0b1001011000: 3
         }
  
+        self.corrections = self._prepare_corrections()
+    
+    def _prepare_corrections(self):
+        offset_words = { 
+            (0, 0b0011111100),
+            (1, 0b0110011000),
+            (2, 0b0101101000),
+            (2, 0b1101010000),
+            (3, 0b0110110100)
+        }
+
+        corrections = {}
+
+        for err in (0b1, 0b11):
+            for offset_index, offset_word in offset_words:
+                for k in range(26):
+                    word = offset_word ^ (err << k)
+                    err_arr = ((err << k) >> np.arange(25, -1, -1)) % 2
+                    word_arr = (word >> np.arange(25, -1, -1)) % 2
+                    syndrome = self.syndrome(word_arr)
+                    corrections[(syndrome, offset_index)] = err_arr
+        return corrections
 
     def syndrome(self, word):
         product = np.dot(word, self.parity_matrix) % 2
         return reduce(lambda a,b: (a << 1) | b, product, 0)
 
-    def offset(self, syndrome):
-        pass
-
     def synchronize(self, bits):
-        pass    
+        def check_sync(prev_words, word, index):
+            for w, ind in prev_words:
+                dist_cond = (index - ind) % 26 == 0
+                dist = (index - ind) // 26
+                word_cond = (word - dist) % 4 == w 
+                if dist_cond and word_cond:
+                    return True
 
-    def process_blocks(self, bits):
-        pass
+            return False
+
+        blocks_found = []
+
+        for i in range(len(bits) - 26 + 1):
+            s = self.syndrome(bits[i: i + 26])
+            offset_word = self.offset_syndrome.get(s, -1)
+            
+            if offset_word >= 0:
+                if check_sync(blocks_found, offset_word, i):
+                    return i, offset_word
+                else:
+                    blocks_found.append((offset_word, i))
+
+        return len(bits), -1
+
+    def process_blocks(self, bits, blocks, initial_offset):
+        correction_queue = deque()
+        err_count = 0
+        expected_offset = initial_offset
+
+        for i in range(0, len(bits) - 26 + 1, 26): 
+            s = self.syndrome(bits[i:i + 26])
+            offset_word = self.offset_syndrome.get(s, -1)
+
+            if offset_word < 0 or offset_word != expected_offset:
+                correction_queue.append(True)
+                err_count += 1
+                
+                try:
+                    correction = self.corrections[(s, expected_offset)]
+                    print('corrected :D')
+                    data = np.logical_xor(bits[i:i + 26], correction)[:16]
+                    data = data.astype(np.int) 
+                except KeyError:
+                    if err_count > 45:
+                        return i
+            else:
+                correction_queue.append(False)
+                data = bits[i:i + 16]
+            
+            expected_offset = (expected_offset + 1) % 4
+            try:
+                blocks.append(data)
+            except NameError:
+                pass
+ 
+            if len(correction_queue) > 50:
+                if correction_queue.popleft():
+                    err_count -= 1
+            print(data)
 
     def find_blocks(self, bits):
         # Steps:
@@ -376,13 +451,13 @@ class BlockGenerator:
         #     append corrected block to the result list
         # * if too many uncorrectable errors occur (>45 per 50?) - assume sync loss, 
         #   try to acquire again
-        i = 0
-        blocks = np.zeros((len(bits) // 26, 26), dtype=np.int)        
+        i = 0 
+        blocks = []        
 
         while i < len(bits):
-            skipped = self.synchronize(bits[i:])
-            processed = self.process_blocks(bits[i + skipped:])
+            skipped, offset = self.synchronize(bits[i:])
+            processed = self.process_blocks(bits[i + skipped:], blocks, offset)
             i += skipped + processed
 
-
+        return blocks
 
