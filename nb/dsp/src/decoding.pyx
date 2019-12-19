@@ -420,26 +420,27 @@ class BlockGenerator:
                 
                 try:
                     correction = self.corrections[(s, expected_offset)]
-                    print('corrected :D')
                     data = np.logical_xor(bits[i:i + 26], correction)[:16]
                     data = data.astype(np.int) 
+                    got_block = True
                 except KeyError:
-                    if err_count > 45:
+                    if err_count > 20:
                         return i
+                    got_block = False
             else:
                 correction_queue.append(False)
                 data = bits[i:i + 16]
+                got_block = True
             
             expected_offset = (expected_offset + 1) % 4
-            try:
-                blocks.append(data)
-            except NameError:
-                pass
- 
+            if got_block:
+                blocks.append((expected_offset, data))
+
             if len(correction_queue) > 50:
                 if correction_queue.popleft():
                     err_count -= 1
-            print(data)
+
+        return len(bits) 
 
     def find_blocks(self, bits):
         # Steps:
@@ -456,8 +457,10 @@ class BlockGenerator:
 
         while i < len(bits):
             skipped, offset = self.synchronize(bits[i:])
+            print('SYNCED: ', i + skipped)
             processed = self.process_blocks(bits[i + skipped:], blocks, offset)
             i += skipped + processed
+            print('LOST SYNC: ', i)
 
         return blocks
 
