@@ -9,6 +9,7 @@ extensions = [
     Extension('dsp.fir', ['src/fir.pyx']), 
     Extension('dsp.am', ['src/am.pyx']), 
     Extension('dsp.fm', ['src/fm.pyx']),
+    Extension('dsp.util', ['src/util.pyx'])
 ]
 
 setup(
