@@ -288,27 +288,44 @@ cdef class BiphaseDecoder:
         return max_ind, max_len 
 
     cpdef run(self, double[::1] samples):
-        cdef int i, j
+        cdef int i, j, clock_polarity, clock_left
         cdef double diff
+        cdef double even_diffs, odd_diffs
         cdef np.ndarray[double, ndim=1] output
        
-        i = j = 0 
+        j = clock_polarity = 0
+        clock_left = 128 
+        even_diffs = odd_diffs = 0.0
         output = np.empty((samples.shape[0] // 2, ), dtype=np.double)
 
-        while i < len(samples) - 1:
-            diff = samples[i] - samples[i + 1]
-            if diff > 1e-5:
-                output[j] = 1
-            elif diff < -1e-5:
-                output[j] = 0
+        for i in range(len(samples) - 1):
+            diff = samples[i + 1] - samples[i]
+            if i % 2 == clock_polarity:
+                if diff >= 0:
+                    output[j] = 1
+                else:
+                    output[j] = 0
+                j += 1
+
+            if i % 2:
+                odd_diffs += fabs(diff)
             else:
-                i += 1
+                even_diffs += fabs(diff)
+            
+            clock_left -= 1
+            if clock_left:
                 continue
 
-            j += 1
-            i += 2            
+            clock_left = 128
+            if odd_diffs < even_diffs:
+                clock_polarity = 0           
+            elif odd_diffs > even_diffs:
+                clock_polarity = 1
 
-        return self._diff_decode(output[:j])        
+            even_diffs = odd_diffs = 0.0
+
+        return output[:j]
+        # return self._diff_decode(output[:j])        
 
     cdef _diff_decode(self, double[::1] samples):
         return np.logical_xor(samples[1:], samples[:-1]).astype(np.double)
@@ -432,9 +449,10 @@ class BlockGenerator:
                 data = bits[i:i + 16]
                 got_block = True
             
-            expected_offset = (expected_offset + 1) % 4
             if got_block:
                 blocks.append((expected_offset, data))
+
+            expected_offset = (expected_offset + 1) % 4
 
             if len(correction_queue) > 50:
                 if correction_queue.popleft():
