@@ -324,8 +324,8 @@ cdef class BiphaseDecoder:
 
             even_diffs = odd_diffs = 0.0
 
-        return output[:j]
-        # return self._diff_decode(output[:j])        
+        # return output[:j]
+        return self._diff_decode(output[:j])        
 
     cdef _diff_decode(self, double[::1] samples):
         return np.logical_xor(samples[1:], samples[:-1]).astype(np.double)
